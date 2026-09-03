@@ -1,6 +1,6 @@
 # greatsongbooks — 책 순위·재고 대시보드
 
-교보문고·예스24 공개 페이지에서 책의 순위, 판매지수, 매장별 재고를 매시간 자동 수집해
+교보문고·예스24 공개 페이지에서 책의 순위, 판매지수, 매장별 재고를 매일 07:00(KST)에 자동 수집해
 GitHub Pages 대시보드로 보여 준다. 서버 없이 GitHub Actions + 정적 페이지만 사용한다.
 
 ## 구조
@@ -13,7 +13,7 @@ GitHub Pages 대시보드로 보여 준다. 서버 없이 GitHub Actions + 정�
 | `data/latest.json` | 책별 최신 스냅샷 |
 | `data/stores.json` | 교보문고 매장 코드 → 이름·지역·주소 |
 | `index.html` | 대시보드 (Chart.js, 정적) |
-| `.github/workflows/collect.yml` | 매시 7분(KST) 수집 후 `data/` 커밋 |
+| `.github/workflows/collect.yml` | 매일 07:00(KST) 수집 후 `data/` 커밋 |
 
 ## 수집 항목
 

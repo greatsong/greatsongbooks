@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>책 순위·재고 대시보드</title>
-<meta name="description" content="교보문고·예스24 순위, 판매지수, 매장별 재고 변화를 매시간 자동 수집해 보여 주는 대시보드">
+<meta name="description" content="교보문고·예스24 순위, 판매지수, 매장별 재고 변화를 매일 아침 자동 수집해 보여 주는 대시보드">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root {
@@ -77,9 +77,9 @@
   <div class="controls">
     <select id="bookSel" hidden></select>
     <div class="seg" id="range" role="group" aria-label="기간">
-      <button data-h="24">24시간</button>
-      <button data-h="168" aria-pressed="true">7일</button>
-      <button data-h="720">30일</button>
+      <button data-h="168">7일</button>
+      <button data-h="720" aria-pressed="true">30일</button>
+      <button data-h="2160">90일</button>
       <button data-h="0">전체</button>
     </div>
     <span class="sub" id="count"></span>
@@ -110,7 +110,7 @@
     </div>
   </div>
 
-  <footer>매시간 GitHub Actions가 교보문고·예스24 공개 페이지를 조회해 기록합니다. 원본 데이터: <a href="data/history.jsonl">history.jsonl</a></footer>
+  <footer>매일 07:00(한국 시간) GitHub Actions가 교보문고·예스24 공개 페이지를 조회해 기록합니다. 원본 데이터: <a href="data/history.jsonl">history.jsonl</a></footer>
 </div>
 
 <script>
@@ -136,7 +136,7 @@
   sel.hidden = books.length < 2;
   let bookId = (location.hash.slice(1) && books.find(b => b.id === location.hash.slice(1))) ? location.hash.slice(1) : books[0].id;
   sel.value = bookId;
-  let hours = 168;
+  let hours = 720;
 
   sel.addEventListener('change', () => { bookId = sel.value; location.hash = bookId; render(); });
   document.querySelectorAll('#range button').forEach(b => b.addEventListener('click', () => {
@@ -207,11 +207,11 @@
       return;
     }
 
-    // 비교 기준: 24시간 전(없으면 가장 오래된 것)
+    // 비교 기준: 하루 전 스냅샷(없으면 가장 오래된 것)
     const ago = all.filter(s => now - s.d >= 24 * 3600e3);
     const ref = ago.length ? ago[ago.length - 1] : all[0];
     const refIsSame = ref === last;
-    const refLabel = ago.length ? '24시간' : '첫 수집 대비';
+    const refLabel = ago.length ? '전일 대비' : '첫 수집 대비';
 
     const kRank = s => s.kyobo?.rank?.[0]?.rank ?? null;
     const yRank = s => s.yes24?.rank?.[0]?.rank ?? null;

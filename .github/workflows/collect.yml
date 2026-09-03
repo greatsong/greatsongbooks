@@ -2,8 +2,8 @@ name: collect
 
 on:
   schedule:
-    # 매시 7분(UTC) = 한국 시간 매시 7분. GitHub 크론은 몇 분 늦게 돌 수 있다.
-    - cron: "7 * * * *"
+    # 매일 22:00 UTC = 한국 시간 다음 날 07:00. GitHub 크론은 몇 분 늦게 돌 수 있다.
+    - cron: "0 22 * * *"
   workflow_dispatch:
 
 permissions:
