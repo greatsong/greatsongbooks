@@ -5,291 +5,1030 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>책 순위·재고 대시보드</title>
 <meta name="description" content="교보문고·예스24 순위, 판매지수, 매장별 재고 변화를 매일 아침 자동 수집해 보여 주는 대시보드">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
+  /* ---------- 색 토큰 (dataviz palette.md 기준값) ---------- */
   :root {
     color-scheme: light;
     --page: #f9f9f7; --surface: #fcfcfb;
     --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
     --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,.10);
-    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
-    --good: #006300; --bad: #d03b3b; --warn: #fab219;
-    --chip: #f0efec;
+    --chip: #f0efec; --wash: rgba(42,120,214,.09);
+    --s1: #2a78d6;   /* 교보문고 */
+    --s2: #eb6834;   /* 예스24 */
+    --s3: #1baf7a;   /* 교보 온라인 재고 */
+    --good: #006300; --bad: #d03b3b;
+    --focus: #2a78d6;
   }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
+    :root:where(:not([data-theme="light"])) {
       color-scheme: dark;
       --page: #0d0d0d; --surface: #1a1a19;
       --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
       --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,.10);
-      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
-      --good: #0ca30c; --bad: #e66767; --chip: #383835;
+      --chip: #262624; --wash: rgba(57,135,229,.14);
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+      --good: #0ca30c; --bad: #e66767;
+      --focus: #3987e5;
     }
   }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19;
+    --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,.10);
+    --chip: #262624; --wash: rgba(57,135,229,.14);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+    --good: #0ca30c; --bad: #e66767;
+    --focus: #3987e5;
+  }
+
+  /* ---------- 기본 ---------- */
   * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
   body { margin: 0; background: var(--page); color: var(--ink);
-         font: 14px/1.5 system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", sans-serif; }
-  .wrap { max-width: 1120px; margin: 0 auto; padding: 24px 20px 64px; }
-  header { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 24px; margin-bottom: 20px; }
-  h1 { font-size: 22px; margin: 0; font-weight: 700; }
-  .sub { color: var(--ink-2); font-size: 13px; }
-  .sub a { color: inherit; }
-  .controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 0 0 20px; }
+         font: 14px/1.5 system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
+  a { color: inherit; }
+  button, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 20px 64px; }
+  .num { font-variant-numeric: tabular-nums; }
+  .muted { color: var(--muted); }
+  .sec { color: var(--ink-2); }
+  .up { color: var(--good); }
+  .down { color: var(--bad); }
+  .hidden { display: none !important; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+  /* ---------- 상단 ---------- */
+  header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; margin-bottom: 14px; }
+  header.top h1 { font-size: 21px; margin: 0; font-weight: 700; letter-spacing: -.01em; }
+  header.top h1 a { text-decoration: none; }
+  .meta { color: var(--ink-2); font-size: 13px; }
+  .meta .warn { color: var(--bad); }
+  .notice { color: var(--ink-2); font-size: 12.5px; margin: 0 0 16px; }
+
+  /* ---------- 필터 행 ---------- */
+  .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0 0 18px; }
   .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
-  .seg button { border: 0; background: transparent; color: var(--ink-2); padding: 6px 12px; cursor: pointer; font: inherit; }
+  .seg button { border: 0; background: transparent; color: var(--ink-2); padding: 6px 12px; }
+  .seg button + button { border-left: 1px solid var(--border); }
   .seg button[aria-pressed="true"] { background: var(--chip); color: var(--ink); font-weight: 600; }
-  select { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--ink); }
-  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
-  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .filters label { color: var(--ink-2); font-size: 13px; }
+  .filters .base { font-size: 13px; color: var(--ink-2); }
+  .btn { border: 1px solid var(--border); border-radius: 8px; background: var(--surface); padding: 6px 12px; color: var(--ink); }
+  .btn:hover { background: var(--chip); }
+  .btn.small { padding: 3px 9px; font-size: 12px; border-radius: 6px; }
+  select.sel { padding: 5px 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); }
+
+  /* ---------- 카드·타일 ---------- */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; min-width: 0; }
   .tile .k { color: var(--ink-2); font-size: 12px; margin-bottom: 4px; }
-  .tile .v { font-size: 26px; font-weight: 700; line-height: 1.1; }
-  .tile .v small { font-size: 14px; font-weight: 500; color: var(--ink-2); margin-left: 2px; }
-  .tile .d { font-size: 12px; margin-top: 6px; color: var(--muted); }
-  .up { color: var(--good); } .down { color: var(--bad); }
-  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; min-width: 0; }
-  .card h2 { font-size: 15px; margin: 0 0 4px; }
-  .card .note { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
-  .plot { position: relative; height: 240px; }
-  .full { grid-column: 1 / -1; }
+  .tile .v { font-size: 26px; font-weight: 600; line-height: 1.15; }
+  .tile .v small { font-size: 13px; font-weight: 500; color: var(--ink-2); margin-left: 2px; }
+  .tile .d { font-size: 12px; margin-top: 5px; color: var(--muted); }
+  .tile .d b { font-weight: 600; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; min-width: 0; }
+  .card h2 { font-size: 15px; margin: 0; font-weight: 600; }
+  .card .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .card .note { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 14px; margin-bottom: 14px; }
+  .grid > .card { min-width: 0; }
+  section { margin-bottom: 22px; }
+  h2.sec-title { font-size: 16px; margin: 0 0 10px; font-weight: 700; }
+  h2.sec-title small { font-weight: 400; color: var(--muted); font-size: 12.5px; margin-left: 8px; }
+
+  /* ---------- 변화 패널 ---------- */
+  .moves { display: flex; flex-direction: column; gap: 6px; }
+  .move { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; padding: 6px 0; border-bottom: 1px solid var(--grid); }
+  .move:last-child { border-bottom: 0; }
+  .move .t { font-weight: 600; text-decoration: none; }
+  .move .t:hover { text-decoration: underline; }
+  .chip { display: inline-block; font-size: 12px; background: var(--chip); border-radius: 6px; padding: 1px 7px; color: var(--ink-2); white-space: nowrap; }
+  .chip b { font-weight: 600; color: var(--ink); }
+  .chip.up b { color: var(--good); } .chip.down b { color: var(--bad); }
+  .chip.sold { background: var(--wash); }
+
+  /* ---------- 표 ---------- */
+  .tscroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-  th, td { padding: 7px 8px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
-  th { color: var(--ink-2); font-weight: 600; font-size: 12px; position: sticky; top: 0; background: var(--surface); }
-  th:first-child, td:first-child, th.l, td.l { text-align: left; }
-  tr.zero td { color: var(--muted); }
-  .tscroll { overflow-x: auto; max-height: 560px; overflow-y: auto; }
-  .bar { display: inline-block; height: 10px; background: var(--s1); border-radius: 0 3px 3px 0; vertical-align: middle; margin-right: 6px; }
-  .area { display: inline-block; font-size: 11px; color: var(--ink-2); background: var(--chip); border-radius: 6px; padding: 1px 6px; }
-  .empty { color: var(--muted); padding: 40px 0; text-align: center; }
-  footer { margin-top: 28px; color: var(--muted); font-size: 12px; }
-  @media (max-width: 600px) { .plot { height: 200px; } h1 { font-size: 19px; } }
+  th, td { padding: 8px 8px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; font-size: 12px; }
+  th.l, td.l { text-align: left; }
+  tbody tr:last-child td { border-bottom: 0; }
+  td .sub { display: block; font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+  td .sub.up { color: var(--good); } td .sub.down { color: var(--bad); }
+  tr.quiet td .val { color: var(--ink-2); }
+  tr.sold td { background: var(--wash); }
+  table.ov th:first-child, table.ov td:first-child { position: sticky; left: 0; background: var(--surface); z-index: 1; max-width: 240px; white-space: normal; min-width: 160px; }
+  table.ov tr.sold td:first-child { background: color-mix(in srgb, var(--surface), var(--s1) 8%); }
+  table.ov td:first-child a { font-weight: 600; text-decoration: none; }
+  table.ov td:first-child a:hover { text-decoration: underline; }
+  table.ov td:first-child .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+  .val { font-weight: 600; }
+  .val.good { color: var(--good); }
+  .bar { display: inline-block; height: 8px; background: var(--s1); border-radius: 0 3px 3px 0; vertical-align: middle; margin-right: 6px; }
+  .area-tag { display: inline-block; font-size: 11px; color: var(--ink-2); background: var(--chip); border-radius: 6px; padding: 1px 6px; }
+  .tv table th, .tv table td { font-size: 12.5px; padding: 5px 8px; }
+  .tv { max-height: 320px; overflow: auto; margin-top: 6px; }
+  .tv thead th { position: sticky; top: 0; background: var(--surface); }
+  .empty { color: var(--muted); padding: 32px 0; text-align: center; font-size: 13px; }
+
+  /* ---------- 차트 ---------- */
+  .fig { position: relative; }
+  .fig svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .fig svg:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; border-radius: 4px; }
+  .fig text { font-size: 11px; fill: var(--muted); font-family: inherit; }
+  .fig .grid-line { stroke: var(--grid); stroke-width: 1; }
+  .fig .base-line { stroke: var(--axis); stroke-width: 1; }
+  .fig .line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .fig .cross { stroke: var(--axis); stroke-width: 1; }
+  .fig .hit { fill: transparent; }
+  .fig .bar-seg { transition: opacity .1s; }
+  .fig .hover .bar-seg { opacity: .78; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-2); margin-bottom: 6px; }
+  .legend .key { display: inline-block; width: 14px; height: 2px; vertical-align: middle; margin-right: 6px; border-radius: 1px; }
+  .legend .key.rect { height: 9px; border-radius: 2px; }
+  .spark { width: 96px; height: 28px; display: block; }
+  .spark .sline { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+
+  /* ---------- 툴팁 ---------- */
+  .tip { position: fixed; z-index: 50; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--border);
+         box-shadow: 0 4px 16px rgba(0,0,0,.12); border-radius: 8px; padding: 8px 10px; font-size: 12px; min-width: 140px; max-width: 260px; }
+  .tip .th { color: var(--ink-2); margin-bottom: 4px; }
+  .tip .tr { display: flex; align-items: center; gap: 8px; padding: 1px 0; }
+  .tip .tr .key { width: 12px; height: 2px; flex: none; border-radius: 1px; }
+  .tip .tr .key.rect { height: 8px; border-radius: 2px; }
+  .tip .tr .v { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tip .tr .n { color: var(--ink-2); }
+  .tip .tf { color: var(--muted); margin-top: 3px; }
+
+  /* ---------- 책 상세 ---------- */
+  .book-head { margin-bottom: 14px; }
+  .book-head h2 { font-size: 20px; margin: 0 0 4px; font-weight: 700; }
+  .book-head .links { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--ink-2); margin-top: 6px; }
+  .status { display: inline-block; font-size: 11.5px; border-radius: 6px; padding: 1px 7px; background: var(--chip); color: var(--ink-2); vertical-align: middle; margin-left: 6px; }
+
+  /* ---------- 리뷰 ---------- */
+  .rv-controls { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 12px 0 8px; font-size: 13px; }
+  .rv-list { display: flex; flex-direction: column; gap: 10px; }
+  .rv { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--surface); }
+  .rv .rh { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; font-size: 12px; color: var(--ink-2); margin-bottom: 4px; }
+  .badge { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 5px; border: 1px solid var(--border); color: var(--ink-2); line-height: 1.5; }
+  .badge.src { border-color: transparent; color: #fff; font-weight: 600; }
+  .badge.src.kyobo { background: var(--s1); }
+  .badge.src.yes24 { background: var(--s2); }
+  .rv .score { font-weight: 600; color: var(--ink); }
+  .rv .rt { font-weight: 600; margin: 2px 0; }
+  .rv .rx { white-space: pre-wrap; word-break: break-word; color: var(--ink); }
+  .rv .rx.clamp { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .rv .rf { display: flex; gap: 10px; align-items: center; margin-top: 6px; font-size: 12px; color: var(--muted); }
+  .linkbtn { border: 0; background: none; padding: 0; color: var(--s1); font-size: 12px; text-decoration: underline; }
+  .more-row { text-align: center; margin-top: 12px; }
+
+  footer { margin-top: 28px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 14px 12px 48px; }
+    header.top h1 { font-size: 18px; }
+    .tile .v { font-size: 22px; }
+    .grid { grid-template-columns: 1fr; }
+    th, td { padding: 7px 6px; font-size: 13px; }
+    table.ov th:first-child, table.ov td:first-child { min-width: 150px; max-width: 170px; }
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
+  <header class="top">
     <div>
-      <h1 id="title">책 순위·재고 대시보드</h1>
-      <div class="sub" id="meta">불러오는 중…</div>
+      <h1><a href="#" id="homeLink">책 순위·재고 대시보드</a></h1>
+      <div class="meta" id="meta">불러오는 중</div>
     </div>
+    <div class="meta" id="srcNote">교보문고·예스24 매일 07:00(KST) 수집</div>
   </header>
+  <p class="notice" id="notice">누적 판매 부수는 두 사이트 모두 제공하지 않습니다. 예스24 판매지수, 교보 주간베스트 순위, 교보 매장 재고 감소분(오프라인 판매 추정)으로 판매 흐름을 추정합니다.</p>
 
-  <div class="controls">
-    <select id="bookSel" hidden></select>
-    <div class="seg" id="range" role="group" aria-label="기간">
-      <button data-h="168">7일</button>
-      <button data-h="720" aria-pressed="true">30일</button>
-      <button data-h="2160">90일</button>
-      <button data-h="0">전체</button>
+  <div class="filters" id="filters">
+    <a class="btn hidden" id="backBtn" href="#">전체 도서로</a>
+    <label for="rangeSeg">기간</label>
+    <div class="seg" id="rangeSeg" role="group" aria-label="기간">
+      <button type="button" data-days="7">7일</button>
+      <button type="button" data-days="30" aria-pressed="true">30일</button>
+      <button type="button" data-days="90">90일</button>
+      <button type="button" data-days="0">전체</button>
     </div>
-    <span class="sub" id="count"></span>
+    <span class="base" id="baseLabel"></span>
   </div>
 
-  <div class="tiles" id="tiles"></div>
+  <main id="view" aria-live="polite"><div class="empty">데이터를 불러오는 중입니다.</div></main>
 
-  <div class="cards">
-    <div class="card">
-      <h2>순위 추이</h2>
-      <div class="note">위쪽이 높은 순위. 예스24 순위는 판매지수가 충분할 때만 표시됩니다.</div>
-      <div class="plot"><canvas id="cRank"></canvas></div>
-    </div>
-    <div class="card">
-      <h2>예스24 판매지수 추이</h2>
-      <div class="note">예스24가 판매량·최근성을 반영해 산출하는 지수</div>
-      <div class="plot"><canvas id="cSales"></canvas></div>
-    </div>
-    <div class="card full">
-      <h2>교보문고 재고 추이</h2>
-      <div class="note">매장 재고 합계와 온라인(물류) 재고. 줄어든 만큼 팔렸다고 볼 수 있습니다.</div>
-      <div class="plot"><canvas id="cStock"></canvas></div>
-    </div>
-    <div class="card full">
-      <h2>교보문고 매장별 재고</h2>
-      <div class="note" id="storeNote"></div>
-      <div class="tscroll"><table id="storeTbl"></table></div>
-    </div>
-  </div>
-
-  <footer>매일 07:00(한국 시간) GitHub Actions가 교보문고·예스24 공개 페이지를 조회해 기록합니다. 원본 데이터: <a href="data/history.jsonl">history.jsonl</a></footer>
+  <footer>
+    데이터 출처: 교보문고(주간베스트 분야 순위, 매장·온라인 재고, 리뷰), 예스24(판매지수, 리뷰). 수집 시각 기준 값이며 사이트 표시와 차이가 있을 수 있습니다.<br>
+    매장 판매 추정은 연속 수집 사이에 줄어든 매장별 재고를 합산한 값입니다. 입고와 매장 간 이동은 반영하지 않습니다.
+  </footer>
 </div>
+<div id="tip" class="tip" role="status" hidden></div>
 
 <script>
-(async function () {
-  const css = k => getComputedStyle(document.documentElement).getPropertyValue(k).trim();
-  const fmt = n => (n == null ? '–' : Number(n).toLocaleString('ko-KR'));
-  const pad = n => String(n).padStart(2, '0');
-  const tLabel = d => `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}시`;
-  const tFull = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+(() => {
+  'use strict';
 
-  const bust = `?v=${Date.now()}`;
-  const [books, storesMeta, histText] = await Promise.all([
-    fetch('books.json' + bust).then(r => r.json()),
-    fetch('data/stores.json' + bust).then(r => r.ok ? r.json() : {}),
-    fetch('data/history.jsonl' + bust).then(r => r.ok ? r.text() : ''),
-  ]);
-  const history = histText.split('\n').filter(Boolean).map(l => { try { return JSON.parse(l); } catch { return null; } })
-    .filter(Boolean).map(s => ({ ...s, d: new Date(s.t) })).sort((a, b) => a.d - b.d);
+  /* ======================================================================
+   * 1. 공용 유틸
+   * ==================================================================== */
+  const DAY = 86400000;
+  const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
+  const $ = (sel, root = document) => root.querySelector(sel);
 
-  // ---- 책 선택
-  const sel = document.getElementById('bookSel');
-  books.forEach(b => { const o = document.createElement('option'); o.value = b.id; o.textContent = b.title; sel.appendChild(o); });
-  sel.hidden = books.length < 2;
-  let bookId = (location.hash.slice(1) && books.find(b => b.id === location.hash.slice(1))) ? location.hash.slice(1) : books[0].id;
-  sel.value = bookId;
-  let hours = 720;
-
-  sel.addEventListener('change', () => { bookId = sel.value; location.hash = bookId; render(); });
-  document.querySelectorAll('#range button').forEach(b => b.addEventListener('click', () => {
-    document.querySelectorAll('#range button').forEach(x => x.setAttribute('aria-pressed', x === b));
-    hours = Number(b.dataset.h); render();
-  }));
-
-  // ---- 차트 공통
-  Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
-  Chart.defaults.color = css('--muted');
-  const charts = {};
-  const baseOpts = (yOpts = {}) => ({
-    responsive: true, maintainAspectRatio: false, animation: false,
-    interaction: { mode: 'index', intersect: false },
-    elements: { line: { borderWidth: 2, tension: 0.15 }, point: { radius: 0, hoverRadius: 5, hitRadius: 12 } },
-    plugins: {
-      legend: { display: true, position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'circle', color: css('--ink-2') } },
-      tooltip: { backgroundColor: css('--surface'), titleColor: css('--ink'), bodyColor: css('--ink-2'), borderColor: css('--border'), borderWidth: 1,
-                 callbacks: { title: items => items.length ? tFull(items[0].raw.x) : '', label: c => ` ${c.dataset.label}: ${fmt(c.raw.y)}${c.dataset.unit || ''}` } },
-    },
-    scales: {
-      x: { type: 'category', grid: { display: false }, border: { color: css('--axis') },
-           ticks: { maxRotation: 0, autoSkip: true, autoSkipPadding: 24, maxTicksLimit: 6 } },
-      y: { grid: { color: css('--grid') }, border: { display: false }, ticks: { precision: 0, callback: v => fmt(v) }, ...yOpts },
-    },
-  });
-  const crosshair = {
-    id: 'crosshair',
-    afterDraw(chart) {
-      const a = chart.tooltip?.getActiveElements?.() || [];
-      if (!a.length) return;
-      const { ctx, chartArea: { top, bottom } } = chart; const x = a[0].element.x;
-      ctx.save(); ctx.strokeStyle = css('--axis'); ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
-      ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, bottom); ctx.stroke(); ctx.restore();
-    },
-  };
-  function draw(id, labels, datasets, yOpts) {
-    const ctx = document.getElementById(id);
-    if (charts[id]) charts[id].destroy();
-    const opts = baseOpts(yOpts);
-    opts.plugins.legend.display = datasets.length > 1;
-    charts[id] = new Chart(ctx, { type: 'line', data: { labels, datasets }, options: opts, plugins: [crosshair] });
-  }
-  const series = (label, color, points, unit, extra = {}) => ({
-    label, unit, data: points, borderColor: color, backgroundColor: color, pointBackgroundColor: color, spanGaps: true, ...extra,
-  });
-
-  // ---- 렌더
-  function render() {
-    const book = books.find(b => b.id === bookId);
-    const all = history.filter(s => s.book === bookId);
-    const now = all.length ? all[all.length - 1].d : new Date();
-    const rows = hours ? all.filter(s => now - s.d <= hours * 3600e3) : all;
-    const last = all[all.length - 1];
-
-    document.getElementById('title').textContent = `${book.title} · 순위·재고 대시보드`;
-    document.getElementById('meta').innerHTML = last
-      ? `${book.author || ''} · ${book.publisher || ''} · 출간 ${book.pubDate || ''} · 마지막 수집 <b>${tFull(last.d)}</b> · `
-        + `<a href="https://product.kyobobook.co.kr/detail/${book.kyobo}" target="_blank" rel="noopener">교보문고</a> · `
-        + `<a href="https://www.yes24.com/product/goods/${book.yes24}" target="_blank" rel="noopener">예스24</a>`
-        + `<br>리뷰 교보 ${fmt(last.kyobo?.reviewCount)}건${last.kyobo?.reviewScore != null ? ` (평점 ${last.kyobo.reviewScore})` : ''} · 예스24 ${fmt(last.yes24?.reviewCount)}건${last.yes24?.reviewScore != null ? ` (평점 ${last.yes24.reviewScore})` : ''} · 판매가 ${fmt(last.kyobo?.price)}원`
-      : '아직 수집된 데이터가 없습니다.';
-    document.getElementById('count').textContent = rows.length ? `스냅샷 ${rows.length}건 (${tFull(rows[0].d)} ~ ${tFull(rows[rows.length - 1].d)})` : '';
-
-    if (!last) {
-      document.getElementById('tiles').innerHTML = '';
-      document.getElementById('storeTbl').innerHTML = '<tr><td class="empty">데이터 없음</td></tr>';
-      return;
+  // DOM 생성 헬퍼. 텍스트는 항상 textContent 경로로 넣어 XSS 를 막는다.
+  function h(tag, attrs = {}, ...children) {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v == null || v === false) continue;
+      if (k === 'class') el.className = v;
+      else if (k === 'text') el.textContent = v;
+      else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+      else el.setAttribute(k, v === true ? '' : v);
     }
-
-    // 비교 기준: 하루 전 스냅샷(없으면 가장 오래된 것)
-    const ago = all.filter(s => now - s.d >= 24 * 3600e3);
-    const ref = ago.length ? ago[ago.length - 1] : all[0];
-    const refIsSame = ref === last;
-    const refLabel = ago.length ? '전일 대비' : '첫 수집 대비';
-
-    const kRank = s => s.kyobo?.rank?.[0]?.rank ?? null;
-    const yRank = s => s.yes24?.rank?.[0]?.rank ?? null;
-    const kRankLabel = last.kyobo?.rank?.[0]?.label || '주간베스트';
-    const yRankLabel = last.yes24?.rank?.[0]?.label || '';
-    const sold = all.length ? soldEstimate(all) : 0;
-
-    const delta = (cur, prev, opt = {}) => {
-      if (cur == null || prev == null || refIsSame) return `<span>비교 기준 없음</span>`;
-      const d = cur - prev; if (d === 0) return `<span>변동 없음 <small>(${refLabel})</small></span>`;
-      if (opt.neutral) return `<span>${d > 0 ? '+' : '−'}${fmt(Math.abs(d))}${opt.unit || ''} <small>(${refLabel})</small></span>`;
-      const good = opt.lowerIsBetter ? d < 0 : d > 0;
-      return `<span class="${good ? 'up' : 'down'}">${good ? '▲' : '▼'} ${fmt(Math.abs(d))}${opt.unit || ''} <small>(${refLabel})</small></span>`;
-    };
-    const tile = (k, v, unit, d) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}${unit ? `<small>${unit}</small>` : ''}</div><div class="d">${d || ''}</div></div>`;
-    document.getElementById('tiles').innerHTML = [
-      tile(`교보 주간베스트 · ${kRankLabel}`, fmt(kRank(last)), kRank(last) != null ? '위' : '', delta(kRank(last), kRank(ref), { lowerIsBetter: true, unit: '계단' })),
-      tile('예스24 판매지수', fmt(last.yes24?.salesIndex), '', delta(last.yes24?.salesIndex, ref.yes24?.salesIndex)),
-      tile(`예스24 베스트${yRankLabel ? ' · ' + yRankLabel : ''}`, yRank(last) != null ? fmt(yRank(last)) : '순위권 밖', yRank(last) != null ? '위' : '', yRank(last) != null ? delta(yRank(last), yRank(ref), { lowerIsBetter: true, unit: '계단' }) : '판매지수가 오르면 표시됩니다'),
-      tile('교보 매장 재고 합계', fmt(last.kyobo?.storeTotal), '권', delta(last.kyobo?.storeTotal, ref.kyobo?.storeTotal, { unit: '권', neutral: true })),
-      tile('교보 온라인 재고', fmt(last.kyobo?.online), '권', delta(last.kyobo?.online, ref.kyobo?.online, { unit: '권', neutral: true })),
-      tile('매장 판매 추정(누적)', fmt(sold), '권', `수집 시작 이후 매장 재고 감소분 합계`),
-    ].join('');
-
-    // ---- 차트
-    const labels = rows.map(s => tLabel(s.d));
-    const pt = (s, v) => ({ x: s.d, y: v });
-    draw('cRank', labels, [
-      series(`교보 ${kRankLabel}`, css('--s1'), rows.map(s => pt(s, kRank(s))), '위'),
-      series(`예스24 ${yRankLabel || '베스트'}`, css('--s2'), rows.map(s => pt(s, yRank(s))), '위'),
-    ], { reverse: true, ticks: { precision: 0, callback: v => fmt(v) + '위' } });
-    draw('cSales', labels, [
-      series('판매지수', css('--s2'), rows.map(s => pt(s, s.yes24?.salesIndex ?? null)), ''),
-    ], { beginAtZero: false });
-    draw('cStock', labels, [
-      series('매장 합계', css('--s1'), rows.map(s => pt(s, s.kyobo?.storeTotal ?? null)), '권'),
-      series('온라인', css('--s3'), rows.map(s => pt(s, s.kyobo?.online ?? null)), '권'),
-    ], { beginAtZero: true });
-
-    // ---- 매장 표
-    const stores = last.kyobo?.stores || {};
-    const prevStores = ref.kyobo?.stores || {};
-    const first = all.find(s => s.kyobo?.stores)?.kyobo?.stores || {};
-    const codes = Object.keys(stores);
-    const max = Math.max(1, ...codes.map(c => stores[c] || 0));
-    const soldByStore = soldEstimateByStore(all);
-    const list = codes.map(c => ({
-      code: c, name: storesMeta[c]?.name || c, area: storesMeta[c]?.area || '', addr: storesMeta[c]?.addr || '',
-      cur: stores[c] ?? 0, prev: prevStores[c], start: first[c], sold: soldByStore[c] || 0,
-    })).sort((a, b) => b.cur - a.cur || b.sold - a.sold || a.name.localeCompare(b.name, 'ko'));
-    const inStock = list.filter(s => s.cur > 0).length;
-    document.getElementById('storeNote').textContent = `${codes.length}개 매장 중 ${inStock}곳 재고 보유 · ${refLabel} 변화와 수집 시작 이후 감소분(판매 추정)`;
-    const dcell = (cur, prev) => {
-      if (prev == null || refIsSame) return '<td>–</td>';
-      const d = cur - prev; if (!d) return '<td>0</td>';
-      return `<td class="${d < 0 ? 'down' : 'up'}">${d > 0 ? '+' : ''}${d}</td>`;
-    };
-    document.getElementById('storeTbl').innerHTML =
-      `<thead><tr><th class="l">매장</th><th class="l">지역</th><th>현재 재고</th><th>${refLabel}</th><th>시작 시점</th><th>판매 추정</th></tr></thead><tbody>` +
-      list.map(s => `<tr class="${s.cur ? '' : 'zero'}"><td class="l" title="${s.addr}">${s.name}</td><td class="l"><span class="area">${s.area}</span></td>` +
-        `<td><span class="bar" style="width:${Math.round(60 * s.cur / max)}px"></span>${s.cur}</td>${dcell(s.cur, s.prev)}<td>${s.start ?? '–'}</td><td>${s.sold || 0}</td></tr>`).join('') +
-      '</tbody>';
+    for (const c of children.flat(Infinity)) {
+      if (c == null || c === false) continue;
+      el.append(c.nodeType ? c : document.createTextNode(String(c)));
+    }
+    return el;
+  }
+  function s(tag, attrs = {}, ...children) {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (const [k, v] of Object.entries(attrs)) if (v != null) el.setAttribute(k, v);
+    for (const c of children.flat(Infinity)) if (c != null) el.append(c.nodeType ? c : document.createTextNode(String(c)));
+    return el;
   }
 
-  // 연속 스냅샷 사이의 매장별 재고 감소분을 합산한다(입고는 무시).
-  function soldEstimateByStore(all) {
-    const out = {}; let prev = null;
-    for (const s of all) {
-      const st = s.kyobo?.stores; if (!st) continue;
-      if (prev) for (const c in st) { const d = (prev[c] ?? st[c]) - st[c]; if (d > 0) out[c] = (out[c] || 0) + d; }
-      prev = st;
-    }
+  const fmt = (v, unit = '') => (v == null || Number.isNaN(v)) ? '없음' : v.toLocaleString('ko-KR') + unit;
+  const signed = (d, unit = '') => d > 0 ? '+' + fmt(d, unit) : d < 0 ? '−' + fmt(-d, unit) : '±0' + unit;
+  const dayMs = key => Date.UTC(+key.slice(0, 4), +key.slice(5, 7) - 1, +key.slice(8, 10));
+  const keyOf = ms => new Date(ms).toISOString().slice(0, 10);
+  const md = key => `${+key.slice(5, 7)}/${+key.slice(8, 10)}`;
+  const longDate = key => `${key} (${WEEK[new Date(dayMs(key)).getUTCDay()]})`;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  function niceStep(raw) {
+    const p = Math.pow(10, Math.floor(Math.log10(raw)));
+    const r = raw / p;
+    return (r <= 1 ? 1 : r <= 2 ? 2 : r <= 2.5 ? 2.5 : r <= 5 ? 5 : 10) * p;
+  }
+  function niceTicks(lo, hi, count = 4) {
+    if (hi === lo) { hi = lo + 1; }
+    const step = niceStep((hi - lo) / count);
+    const start = Math.floor(lo / step) * step, end = Math.ceil(hi / step) * step;
+    const out = [];
+    for (let v = start; v <= end + step / 2; v += step) out.push(+v.toFixed(6));
     return out;
   }
-  function soldEstimate(all) { return Object.values(soldEstimateByStore(all)).reduce((a, b) => a + b, 0); }
 
-  render();
-  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { Chart.defaults.color = css('--muted'); render(); });
+  /* ======================================================================
+   * 2. 툴팁 (하나를 공유)
+   * ==================================================================== */
+  const tip = $('#tip');
+  function showTip(x, y, head, rows, foot) {
+    tip.replaceChildren(h('div', { class: 'th', text: head }),
+      ...rows.map(r => h('div', { class: 'tr' },
+        r.color ? h('span', { class: 'key' + (r.rect ? ' rect' : ''), style: `background:${r.color}` }) : null,
+        h('span', { class: 'v', text: r.value }),
+        h('span', { class: 'n', text: r.name }))),
+      foot ? h('div', { class: 'tf', text: foot }) : null);
+    tip.hidden = false;
+    const w = tip.offsetWidth, hh = tip.offsetHeight;
+    let left = x + 14, top = y + 14;
+    if (left + w > innerWidth - 8) left = x - w - 14;
+    if (top + hh > innerHeight - 8) top = y - hh - 14;
+    tip.style.left = Math.max(4, left) + 'px';
+    tip.style.top = Math.max(4, top) + 'px';
+  }
+  const hideTip = () => { tip.hidden = true; };
+
+  /* ======================================================================
+   * 3. 차트 (순수 SVG)
+   * ==================================================================== */
+  const RO = 'ResizeObserver' in window ? new ResizeObserver(entries => {
+    for (const e of entries) {
+      const w = Math.round(e.contentRect.width);
+      if (e.target._w !== w) { e.target._w = w; e.target._draw && e.target._draw(); }
+    }
+  }) : null;
+  function mountChart(host, draw) {
+    host._draw = () => draw(host);
+    host._w = Math.round(host.clientWidth);
+    if (RO) RO.observe(host);
+    draw(host);
+  }
+
+  // 그림 카드: 제목·설명·표 보기 토글을 포함한다.
+  function figure({ title, note, legend, draw, table, height }) {
+    const body = h('div', { class: 'fig' });
+    const tv = h('div', { class: 'tv hidden' });
+    let showingTable = false;
+    const btn = h('button', { class: 'btn small', type: 'button', 'aria-pressed': 'false', text: '표로 보기', onclick: () => {
+      showingTable = !showingTable;
+      btn.textContent = showingTable ? '차트로 보기' : '표로 보기';
+      btn.setAttribute('aria-pressed', String(showingTable));
+      body.classList.toggle('hidden', showingTable);
+      tv.classList.toggle('hidden', !showingTable);
+      if (showingTable && !tv.childElementCount) tv.append(dataTable(table()));
+    } });
+    const legendEl = legend && legend.length > 1 ? h('div', { class: 'legend' },
+      legend.map(l => h('span', {}, h('span', { class: 'key' + (l.rect ? ' rect' : ''), style: `background:${l.color}` }), l.name))) : null;
+    const card = h('div', { class: 'card' },
+      h('div', { class: 'head' }, h('div', {}, h('h2', { text: title }), note ? h('div', { class: 'note', text: note }) : null), btn),
+      legendEl, body, tv);
+    mountChart(body, host => { host.style.height = ''; draw(host, height || 230); });
+    return card;
+  }
+  function dataTable({ columns, rows, align }) {
+    return h('table', {},
+      h('thead', {}, h('tr', {}, columns.map((c, i) => h('th', { class: i === 0 ? 'l' : '', text: c })))),
+      h('tbody', {}, rows.map(r => h('tr', {}, r.map((c, i) => h('td', { class: i === 0 ? 'l' : '', text: c == null ? '' : String(c) }))))));
+  }
+
+  /**
+   * 선 차트. series: [{ name, color, values:[number|null] }], xs: 날짜 ms 배열(공통).
+   * reverse=true 이면 값이 작을수록 위(순위). crosshair + 툴팁 + 키보드 이동.
+   */
+  function drawLine(host, height, { xs, series, reverse = false, zero = false, unit = '', area = false, emptyText }) {
+    host.replaceChildren();
+    const W = Math.max(240, host.clientWidth || 600), H = height;
+    const m = { t: 12, r: 18, b: 26, l: 46 };
+    const pw = W - m.l - m.r, ph = H - m.t - m.b;
+    const active = series.filter(sr => sr.values.some(v => v != null));
+    if (!xs.length || !active.length) { host.append(h('div', { class: 'empty', text: emptyText || '표시할 데이터가 없습니다.' })); return; }
+    const vals = active.flatMap(sr => sr.values.filter(v => v != null));
+    let lo = Math.min(...vals), hi = Math.max(...vals);
+    if (zero) lo = Math.min(0, lo);
+    const ticks = niceTicks(lo, hi, 4);
+    lo = ticks[0]; hi = ticks[ticks.length - 1];
+    let x0 = xs[0], x1 = xs[xs.length - 1];
+    if (x0 === x1) { x0 -= DAY; x1 += DAY; }
+    const X = ms => m.l + (ms - x0) / (x1 - x0) * pw;
+    const Y = v => reverse ? m.t + (v - lo) / (hi - lo) * ph : m.t + (hi - v) / (hi - lo) * ph;
+
+    const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', tabindex: '0',
+      'aria-label': `${active.map(a => a.name).join(', ')} 추이. 방향키로 날짜를 이동합니다.` });
+    // 격자·축
+    for (const t of ticks) {
+      svg.append(s('line', { class: 'grid-line', x1: m.l, x2: W - m.r, y1: Y(t), y2: Y(t) }));
+      svg.append(s('text', { x: m.l - 8, y: Y(t) + 4, 'text-anchor': 'end' }, fmt(t)));
+    }
+    svg.append(s('line', { class: 'base-line', x1: m.l, x2: W - m.r, y1: m.t + ph, y2: m.t + ph }));
+    const n = xs.length, step = Math.max(1, Math.ceil(n / Math.max(2, Math.floor(pw / 80))));
+    for (let i = n - 1; i >= 0; i -= step) svg.append(s('text', { x: X(xs[i]), y: H - 8, 'text-anchor': 'middle' }, md(keyOf(xs[i]))));
+
+    // 시리즈
+    for (const sr of active) {
+      let d = '', pen = false;
+      sr.values.forEach((v, i) => { if (v == null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${X(xs[i]).toFixed(1)},${Y(v).toFixed(1)}`; pen = true; });
+      if (area && active.length === 1) {
+        // 단일 시리즈 면 채우기 (10% 워시). 구간별로 바닥까지 닫는다.
+        let ad = '', start = null;
+        sr.values.forEach((v, i) => {
+          if (v == null) { if (start != null) { ad += `L${X(xs[i - 1]).toFixed(1)},${m.t + ph}Z`; start = null; } return; }
+          if (start == null) { start = i; ad += `M${X(xs[i]).toFixed(1)},${m.t + ph}`; }
+          ad += `L${X(xs[i]).toFixed(1)},${Y(v).toFixed(1)}`;
+          if (i === n - 1) ad += `L${X(xs[i]).toFixed(1)},${m.t + ph}Z`;
+        });
+        svg.append(s('path', { d: ad, fill: sr.color, 'fill-opacity': .1 }));
+      }
+      svg.append(s('path', { class: 'line', d, stroke: sr.color }));
+      // 단일 점 구간은 선이 안 보이므로 점으로 표시
+      sr.values.forEach((v, i) => {
+        if (v == null) return;
+        const alone = (i === 0 || sr.values[i - 1] == null) && (i === n - 1 || sr.values[i + 1] == null);
+        if (alone) svg.append(s('circle', { cx: X(xs[i]), cy: Y(v), r: 3, fill: sr.color }));
+      });
+      // 끝점
+      for (let i = n - 1; i >= 0; i--) if (sr.values[i] != null) {
+        svg.append(s('circle', { cx: X(xs[i]), cy: Y(sr.values[i]), r: 4, fill: sr.color, stroke: 'var(--surface)', 'stroke-width': 2 }));
+        break;
+      }
+    }
+    // 크로스헤어
+    const cross = s('g', { visibility: 'hidden' });
+    const vline = s('line', { class: 'cross', y1: m.t, y2: m.t + ph });
+    cross.append(vline);
+    const dots = active.map(sr => { const c = s('circle', { r: 4, fill: sr.color, stroke: 'var(--surface)', 'stroke-width': 2 }); cross.append(c); return c; });
+    svg.append(cross);
+    const hit = s('rect', { class: 'hit', x: m.l, y: m.t, width: pw, height: ph });
+    svg.append(hit);
+
+    let idx = -1;
+    const at = (i, px, py) => {
+      idx = clamp(i, 0, n - 1);
+      const cx = X(xs[idx]);
+      vline.setAttribute('x1', cx); vline.setAttribute('x2', cx);
+      active.forEach((sr, k) => {
+        const v = sr.values[idx];
+        dots[k].setAttribute('visibility', v == null ? 'hidden' : 'visible');
+        if (v != null) { dots[k].setAttribute('cx', cx); dots[k].setAttribute('cy', Y(v)); }
+      });
+      cross.setAttribute('visibility', 'visible');
+      const rows = active.map(sr => ({ color: sr.color, name: sr.name, value: sr.values[idx] == null ? '없음' : fmt(sr.values[idx], unit) }));
+      const r = svg.getBoundingClientRect();
+      const sx = r.width / W;
+      showTip(px ?? r.left + cx * sx, py ?? r.top + (m.t + ph / 2) * sx, longDate(keyOf(xs[idx])), rows);
+    };
+    const nearest = clientX => {
+      const r = svg.getBoundingClientRect();
+      const ms = x0 + ((clientX - r.left) * (W / r.width) - m.l) / pw * (x1 - x0);
+      let best = 0, bd = Infinity;
+      xs.forEach((v, i) => { const d = Math.abs(v - ms); if (d < bd) { bd = d; best = i; } });
+      return best;
+    };
+    hit.addEventListener('pointermove', e => at(nearest(e.clientX), e.clientX, e.clientY));
+    hit.addEventListener('pointerleave', () => { cross.setAttribute('visibility', 'hidden'); hideTip(); });
+    svg.addEventListener('keydown', e => {
+      if (e.key === 'ArrowLeft') { e.preventDefault(); at(idx < 0 ? n - 1 : idx - 1); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); at(idx < 0 ? n - 1 : idx + 1); }
+      else if (e.key === 'Escape') { cross.setAttribute('visibility', 'hidden'); hideTip(); }
+    });
+    svg.addEventListener('focus', () => { if (idx < 0) at(n - 1); });
+    svg.addEventListener('blur', () => { cross.setAttribute('visibility', 'hidden'); hideTip(); idx = -1; });
+    host.append(svg);
+  }
+
+  /** 세로 막대 차트(누적). cats: 라벨 배열, series: [{name,color,values}] */
+  function drawBars(host, height, { cats, series, unit = '', capLabels = false, labelEvery }) {
+    host.replaceChildren();
+    const W = Math.max(240, host.clientWidth || 600), H = height;
+    const m = { t: 14, r: 12, b: 26, l: 36 };
+    const pw = W - m.l - m.r, ph = H - m.t - m.b;
+    const n = cats.length;
+    const totals = cats.map((_, i) => series.reduce((a, sr) => a + (sr.values[i] || 0), 0));
+    if (!n || !totals.some(t => t > 0)) { host.append(h('div', { class: 'empty', text: '표시할 데이터가 없습니다.' })); return; }
+    const ticks = niceTicks(0, Math.max(...totals), 3);
+    const hi = ticks[ticks.length - 1];
+    const Y = v => m.t + (hi - v) / hi * ph;
+    const band = pw / n, bw = Math.min(24, band * 0.62);
+    const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', 'aria-label': `${series.map(a => a.name).join(', ')} 막대 차트` });
+    for (const t of ticks) {
+      svg.append(s('line', { class: 'grid-line', x1: m.l, x2: W - m.r, y1: Y(t), y2: Y(t) }));
+      svg.append(s('text', { x: m.l - 8, y: Y(t) + 4, 'text-anchor': 'end' }, fmt(t)));
+    }
+    svg.append(s('line', { class: 'base-line', x1: m.l, x2: W - m.r, y1: m.t + ph, y2: m.t + ph }));
+    const every = labelEvery || Math.max(1, Math.ceil(n / Math.max(2, Math.floor(pw / 56))));
+    cats.forEach((c, i) => {
+      const cx = m.l + band * (i + 0.5), x = cx - bw / 2;
+      const g = s('g');
+      let acc = 0;
+      const nonzero = series.filter(sr => sr.values[i] > 0);
+      nonzero.forEach((sr, k) => {
+        const v = sr.values[i];
+        const yTop = Y(acc + v), yBot = Y(acc);
+        const gap = k > 0 ? 2 : 0; // 조각 사이 2px 표면 간격
+        let hgt = Math.max(0, yBot - yTop - gap);
+        const y = yBot - gap - hgt;
+        const top = k === nonzero.length - 1;
+        const r = Math.min(4, hgt / 2, bw / 2);
+        const d = top && r > 0
+          ? `M${x},${y + hgt}V${y + r}a${r},${r} 0 0 1 ${r},-${r}h${bw - 2 * r}a${r},${r} 0 0 1 ${r},${r}V${y + hgt}Z`
+          : `M${x},${y}h${bw}v${hgt}h${-bw}Z`;
+        g.append(s('path', { class: 'bar-seg', d, fill: sr.color }));
+        acc += v;
+      });
+      if (capLabels && totals[i] > 0) g.append(s('text', { x: cx, y: Y(totals[i]) - 5, 'text-anchor': 'middle', fill: 'var(--ink-2)' }, fmt(totals[i])));
+      if ((n - 1 - i) % every === 0) svg.append(s('text', { x: cx, y: H - 8, 'text-anchor': 'middle' }, c));
+      const hit = s('rect', { class: 'hit', x: m.l + band * i, y: m.t, width: Math.max(band, 24), height: ph });
+      hit.addEventListener('pointermove', e => {
+        g.classList.add('hover');
+        showTip(e.clientX, e.clientY, c, series.map(sr => ({ color: sr.color, rect: true, name: sr.name, value: fmt(sr.values[i] || 0, unit) })),
+          series.length > 1 ? `합계 ${fmt(totals[i], unit)}` : null);
+      });
+      hit.addEventListener('pointerleave', () => { g.classList.remove('hover'); hideTip(); });
+      svg.append(g, hit);
+    });
+    host.append(svg);
+  }
+
+  /** 스파크라인: 회색 선 + 끝점 강조 */
+  function sparkline(values, color) {
+    const W = 96, H = 28, pad = 3;
+    const pts = values.map((v, i) => [i, v]).filter(p => p[1] != null);
+    const svg = s('svg', { class: 'spark', viewBox: `0 0 ${W} ${H}`, role: 'img' });
+    if (pts.length < 2) { svg.append(s('title', {}, '데이터 부족')); return svg; }
+    const lo = Math.min(...pts.map(p => p[1])), hi = Math.max(...pts.map(p => p[1]));
+    const X = i => pad + i / (values.length - 1) * (W - 2 * pad);
+    const Y = v => hi === lo ? H / 2 : pad + (hi - v) / (hi - lo) * (H - 2 * pad);
+    svg.append(s('title', {}, `최소 ${fmt(lo)}, 최대 ${fmt(hi)}`));
+    let d = '', pen = false;
+    values.forEach((v, i) => { if (v == null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`; pen = true; });
+    svg.append(s('path', { class: 'sline', d }));
+    const last = pts[pts.length - 1];
+    svg.append(s('circle', { cx: X(last[0]), cy: Y(last[1]), r: 3, fill: color, stroke: 'var(--surface)', 'stroke-width': 1.5 }));
+    return svg;
+  }
+
+  /* ======================================================================
+   * 4. 데이터 적재·가공
+   * ==================================================================== */
+  const state = { books: [], stores: {}, model: new Map(), range: 30, lastKey: null, lastT: null, errors: { kyobo: 0, yes24: 0 } };
+
+  async function loadAll() {
+    const [books, stores, hist] = await Promise.all([
+      fetch('books.json', { cache: 'no-cache' }).then(r => r.json()),
+      fetch('data/stores.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).catch(() => ({})),
+      fetch('data/history.jsonl', { cache: 'no-cache' }).then(r => r.ok ? r.text() : '').catch(() => ''),
+    ]);
+    state.books = books;
+    state.stores = stores || {};
+    const rows = [];
+    for (const line of hist.split('\n')) {
+      const t = line.trim(); if (!t) continue;
+      try { rows.push(JSON.parse(t)); } catch (e) { /* 손상된 줄은 건너뛴다 */ }
+    }
+    rows.sort((a, b) => a.t < b.t ? -1 : a.t > b.t ? 1 : 0);
+    for (const b of books) state.model.set(b.id, buildBook(b, rows.filter(r => r.book === b.id)));
+    let lastT = null;
+    for (const r of rows) if (!lastT || r.t > lastT) lastT = r.t;
+    state.lastT = lastT;
+    state.lastKey = lastT ? lastT.slice(0, 10) : null;
+    for (const bm of state.model.values()) {
+      const l = bm.last; if (!l) continue;
+      if (l.kyoboError) state.errors.kyobo++;
+      if (l.yes24Error) state.errors.yes24++;
+    }
+  }
+
+  // 하루의 값은 그날 마지막 스냅샷으로 집계한다.
+  function buildBook(book, rows) {
+    const byDay = new Map();
+    for (const r of rows) byDay.set(r.t.slice(0, 10), r);
+    const days = [...byDay.keys()].sort().map(key => normalize(key, byDay.get(key)));
+    // 매장별 감소분 누적(판매 추정)
+    let prevStores = null;
+    for (const d of days) {
+      d.soldByStore = {}; d.sold = 0;
+      if (d.stores && prevStores) {
+        for (const code in d.stores) {
+          const p = prevStores[code]; if (p == null) continue;
+          const dec = p - d.stores[code];
+          if (dec > 0) { d.soldByStore[code] = dec; d.sold += dec; }
+        }
+      }
+      if (d.stores) prevStores = d.stores;
+    }
+    const cum = {}; let cumTotal = 0;
+    for (const d of days) {
+      for (const c in d.soldByStore) cum[c] = (cum[c] || 0) + d.soldByStore[c];
+      cumTotal += d.sold;
+      d.cumSoldByStore = { ...cum }; d.cumSold = cumTotal;
+    }
+    const last = days[days.length - 1] || null;
+    const prev = days.length >= 2 ? days[days.length - 2] : null;
+    let w7 = null;
+    if (last) { for (let i = days.length - 1; i >= 0; i--) if (days[i].ms <= last.ms - 7 * DAY) { w7 = days[i]; break; } }
+    if (!w7 && days.length >= 2) w7 = days[0];
+    return { book, days, last, prev, w7, first: days[0] || null };
+  }
+
+  function normalize(key, r) {
+    const k = r.kyobo && !r.kyoboError ? r.kyobo : null;
+    const y = r.yes24 && !r.yes24Error ? r.yes24 : null;
+    const stores = k && k.stores ? k.stores : null;
+    const storeTotal = k ? (k.storeTotal ?? (stores ? Object.values(stores).reduce((a, b) => a + (b || 0), 0) : null)) : null;
+    const kr = k && k.reviewCount != null ? k.reviewCount : (r.reviews ? r.reviews.kyobo : null);
+    const yr = y && y.reviewCount != null ? y.reviewCount : (r.reviews ? r.reviews.yes24 : null);
+    return {
+      key, t: r.t, ms: dayMs(key), kyobo: k, yes24: y,
+      kyoboError: !!r.kyoboError, yes24Error: !!r.yes24Error,
+      kRank: k && k.rank && k.rank.length ? k.rank[0].rank : null,
+      kRankLabel: k && k.rank && k.rank.length ? k.rank[0].label : null,
+      salesIndex: y && y.salesIndex != null ? y.salesIndex : null,
+      yRank: y && y.rank && y.rank.length ? y.rank[0].rank : null,
+      yRankLabel: y && y.rank && y.rank.length ? y.rank[0].label : null,
+      yRankText: y ? (y.rankText || '') : '',
+      storeTotal, stores,
+      onlineRaw: k && k.online != null ? k.online : null,
+      online: k && k.online != null ? Math.max(0, k.online) : null,
+      reviews: (kr == null && yr == null) ? null : (kr || 0) + (yr || 0),
+      kReviews: kr, yReviews: yr,
+      kScore: k ? k.reviewScore : null, yScore: y ? y.reviewScore : null,
+      status: k ? k.status : null, price: k ? k.price : null,
+    };
+  }
+
+  const diff = (a, b, f) => (a && b && a !== b && a[f] != null && b[f] != null) ? a[f] - b[f] : null;
+  function windowDays(days) {
+    if (!state.range || !days.length) return days;
+    const lastMs = days[days.length - 1].ms;
+    return days.filter(d => d.ms >= lastMs - (state.range - 1) * DAY);
+  }
+  function baseLabel(bm, which) {
+    const ref = which === 'w7' ? bm.w7 : bm.prev;
+    if (!ref || !bm.last || ref === bm.last) return '비교 기준 없음';
+    const gap = Math.round((bm.last.ms - ref.ms) / DAY);
+    if (which === 'w7') return gap === 7 ? `7일 전(${md(ref.key)}) 대비` : ref === bm.first && gap < 7 ? `첫 수집(${md(ref.key)}) 대비` : `${gap}일 전(${md(ref.key)}) 대비`;
+    return gap === 1 ? `전일(${md(ref.key)}) 대비` : `직전 수집(${md(ref.key)}) 대비`;
+  }
+  // 대시보드 전체의 비교 기준 라벨(가장 최근 책 기준)
+  function globalBaseLabel() {
+    let pick = null;
+    for (const bm of state.model.values()) if (bm.last && (!pick || bm.last.ms > pick.last.ms)) pick = bm;
+    return pick ? baseLabel(pick, 'prev') : '';
+  }
+
+  /* ======================================================================
+   * 5. 공용 렌더 조각
+   * ==================================================================== */
+  function deltaNode(d, { unit = '', lowerIsBetter = false, neutral = false, rank = false } = {}) {
+    if (d == null) return h('span', { class: 'sub muted', text: '기준 없음' });
+    if (d === 0) return h('span', { class: 'sub muted', text: '±0' });
+    if (rank) { // 순위: 숫자가 줄면 상승
+      const up = d < 0;
+      return h('span', { class: 'sub ' + (up ? 'up' : 'down'), text: `${up ? '▲' : '▼'}${fmt(Math.abs(d))}` });
+    }
+    if (neutral) return h('span', { class: 'sub', text: signed(d, unit) });
+    const good = lowerIsBetter ? d < 0 : d > 0;
+    return h('span', { class: 'sub ' + (good ? 'up' : 'down'), text: signed(d, unit) });
+  }
+  function tile(label, value, unit, ...notes) {
+    return h('div', { class: 'tile' }, h('div', { class: 'k', text: label }),
+      h('div', { class: 'v' }, value, unit ? h('small', { text: unit }) : null),
+      ...notes.filter(Boolean).map(n => h('div', { class: 'd' }, n)));
+  }
+  const rankText = d => d && d.kRank != null ? fmt(d.kRank, '위') : '순위권 밖';
+  function bookUrl(b, site) {
+    if (site === 'kyobo') return b.kyobo ? `https://product.kyobobook.co.kr/detail/${encodeURIComponent(b.kyobo)}` : null;
+    return b.yes24 ? `https://www.yes24.com/product/goods/${encodeURIComponent(b.yes24)}` : null;
+  }
+
+  /* ======================================================================
+   * 6. 개요 화면
+   * ==================================================================== */
+  function renderOverview() {
+    const view = $('#view'); view.replaceChildren();
+    const items = state.books.map(b => state.model.get(b.id)).filter(bm => bm.last);
+    if (!items.length) { view.append(h('div', { class: 'empty', text: '수집된 데이터가 없습니다.' })); return; }
+
+    // 책별 변화량 정리
+    const rowsData = items.map(bm => {
+      const { last, prev, w7 } = bm;
+      const r = {
+        bm, last,
+        dSales: diff(last, prev, 'salesIndex'), dSales7: diff(last, w7, 'salesIndex'),
+        dRank: diff(last, prev, 'kRank'), dRank7: diff(last, w7, 'kRank'),
+        dStore: diff(last, prev, 'storeTotal'), dOnline: diff(last, prev, 'online'),
+        dRev: diff(last, prev, 'reviews'), sold: prev ? last.sold : 0,
+        rankIn: last.kRank != null, rankInPrev: prev ? prev.kRank != null : null,
+      };
+      r.moved = !!(r.dSales || r.dRank || r.dStore || r.dOnline || r.dRev || r.sold || (prev && r.rankIn !== r.rankInPrev));
+      r.score = r.sold * 3 + Math.abs(r.dSales || 0) / 100 + Math.abs(r.dRank || 0) / 50 + (r.dRev || 0) * 2 + (r.dStore ? 0.5 : 0) + (r.dOnline ? 0.3 : 0);
+      return r;
+    });
+
+    // KPI
+    const soldTotal = rowsData.reduce((a, r) => a + r.sold, 0);
+    const soldBooks = rowsData.filter(r => r.sold > 0).length;
+    const siUp = rowsData.filter(r => r.dSales > 0).length, siDown = rowsData.filter(r => r.dSales < 0).length;
+    const rkUp = rowsData.filter(r => r.dRank < 0).length, rkDown = rowsData.filter(r => r.dRank > 0).length;
+    const newRev = rowsData.reduce((a, r) => a + Math.max(0, r.dRev || 0), 0);
+    const storeSum = rowsData.reduce((a, r) => a + (r.last.storeTotal || 0), 0);
+    const storeSumPrev = rowsData.reduce((a, r) => a + (r.bm.prev && r.bm.prev.storeTotal != null ? r.bm.prev.storeTotal : (r.last.storeTotal || 0)), 0);
+    const base = globalBaseLabel();
+    view.append(h('div', { class: 'tiles' },
+      tile('매장 판매 추정', fmt(soldTotal), '권', h('span', {}, soldBooks ? h('b', { text: `${soldBooks}권의 책` }) : '없음', soldBooks ? '에서 매장 재고 감소' : ''), base),
+      tile('판매지수 변동 도서', String(siUp + siDown), '권', h('span', {}, h('b', { class: 'up', text: `상승 ${siUp}` }), ' · ', h('b', { class: 'down', text: `하락 ${siDown}` })), `예스24 · ${base}`),
+      tile('순위 변동 도서', String(rkUp + rkDown), '권', h('span', {}, h('b', { class: 'up', text: `상승 ${rkUp}` }), ' · ', h('b', { class: 'down', text: `하락 ${rkDown}` })), `교보 주간베스트 · ${base}`),
+      tile('새 리뷰', fmt(newRev), '건', `교보+예스24 · ${base}`),
+      tile('교보 매장 재고 합계', fmt(storeSum), '권', deltaNode(storeSum - storeSumPrev, { unit: '권', neutral: true }), base),
+    ));
+
+    // 변화 패널
+    const moved = rowsData.filter(r => r.moved).sort((a, b) => b.score - a.score);
+    const panel = h('section', {}, h('h2', { class: 'sec-title' }, '무엇이 달라졌는가', h('small', { text: base })));
+    if (!moved.length) panel.append(h('div', { class: 'card' }, h('div', { class: 'empty', text: '비교 기준 대비 변동이 없습니다.' })));
+    else panel.append(h('div', { class: 'card' }, h('div', { class: 'moves' }, moved.map(r => {
+      const chips = [];
+      const chip = (cls, label, valueText) => chips.push(h('span', { class: 'chip ' + cls }, label + ' ', h('b', { text: valueText })));
+      if (r.sold > 0) chip('sold', '매장 판매 추정', fmt(r.sold, '권'));
+      if (r.dSales) chip(r.dSales > 0 ? 'up' : 'down', '판매지수', signed(r.dSales));
+      if (r.dRank) chip(r.dRank < 0 ? 'up' : 'down', '교보 순위', `${r.dRank < 0 ? '▲' : '▼'}${fmt(Math.abs(r.dRank))}`);
+      else if (r.bm.prev && r.rankIn !== r.rankInPrev) chip(r.rankIn ? 'up' : 'down', '교보 순위', r.rankIn ? '진입' : '이탈');
+      if (r.dStore) chip('', '매장 재고', signed(r.dStore, '권'));
+      if (r.dOnline) chip('', '온라인 재고', signed(r.dOnline, '권'));
+      if (r.dRev) chip(r.dRev > 0 ? 'up' : 'down', '리뷰', signed(r.dRev, '건'));
+      return h('div', { class: 'move' }, h('a', { class: 't', href: '#' + encodeURIComponent(r.bm.book.id), text: r.bm.book.title }), chips);
+    }))));
+    view.append(panel);
+
+    // 전체 표
+    const sortSel = h('select', { class: 'sel', 'aria-label': '정렬' },
+      h('option', { value: 'move', text: '변화순' }), h('option', { value: 'sales', text: '판매지수순' }), h('option', { value: 'pub', text: '출간일순' }));
+    const tbl = h('table', { class: 'ov' });
+    const wrapT = h('div', { class: 'tscroll' }, tbl);
+    const sec = h('section', {},
+      h('div', { class: 'head', style: 'display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px' },
+        h('h2', { class: 'sec-title', style: 'margin:0' }, '전체 도서', h('small', { text: `${items.length}권 · 스파크라인은 예스24 판매지수 ${state.range ? state.range + '일' : '전체 기간'}` })),
+        h('label', {}, '정렬 ', sortSel)),
+      h('div', { class: 'card', style: 'padding:4px 8px' }, wrapT));
+    view.append(sec);
+
+    const buildTable = () => {
+      const mode = sortSel.value;
+      const sorted = [...rowsData].sort((a, b) => {
+        if (mode === 'sales') return (b.last.salesIndex || 0) - (a.last.salesIndex || 0);
+        if (mode === 'pub') return (b.bm.book.pubDate || '').localeCompare(a.bm.book.pubDate || '');
+        if (a.moved !== b.moved) return a.moved ? -1 : 1;
+        if (a.moved) return b.score - a.score;
+        return (b.last.salesIndex || 0) - (a.last.salesIndex || 0);
+      });
+      tbl.replaceChildren(
+        h('thead', {}, h('tr', {},
+          h('th', { class: 'l', text: '도서' }), h('th', { text: '예스24 판매지수' }), h('th', { class: 'l', text: '추이' }),
+          h('th', { text: '교보 순위' }), h('th', { text: '매장 재고' }), h('th', { text: '매장 판매 추정' }), h('th', { text: '온라인 재고' }), h('th', { text: '리뷰' }))),
+        h('tbody', {}, sorted.map(r => {
+          const b = r.bm.book, l = r.last;
+          const win = windowDays(r.bm.days);
+          const cls = (r.sold > 0 ? 'sold ' : '') + (r.moved ? '' : 'quiet');
+          return h('tr', { class: cls },
+            h('td', {}, h('a', { href: '#' + encodeURIComponent(b.id), text: b.title }),
+              h('span', { class: 'sub', text: `${b.publisher || ''} · ${b.pubDate || ''}${l.status && l.status !== '판매중' ? ' · ' + l.status : ''}` })),
+            h('td', {}, h('span', { class: 'val', text: l.salesIndex == null ? (l.yes24 ? '없음' : '수집 실패') : fmt(l.salesIndex) }),
+              h('span', { class: 'sub' }, deltaNode(r.dSales), ' 전일'),
+              h('span', { class: 'sub' }, deltaNode(r.dSales7), ' 7일')),
+            h('td', { class: 'l' }, sparkline(win.map(d => d.salesIndex), 'var(--s2)')),
+            h('td', {}, h('span', { class: 'val', text: rankText(l) }),
+              l.kRankLabel ? h('span', { class: 'sub', text: l.kRankLabel }) : null,
+              r.dRank != null ? deltaNode(r.dRank, { rank: true }) : (r.bm.prev && r.rankIn !== r.rankInPrev ? h('span', { class: 'sub ' + (r.rankIn ? 'up' : 'down'), text: r.rankIn ? '순위 진입' : '순위 이탈' }) : null)),
+            h('td', {}, h('span', { class: 'val', text: l.storeTotal == null ? '없음' : fmt(l.storeTotal, '권') }), deltaNode(r.dStore, { unit: '권', neutral: true })),
+            h('td', {}, h('span', { class: 'val' + (r.sold > 0 ? ' good' : ''), text: r.sold > 0 ? fmt(r.sold, '권') : '0' }),
+              h('span', { class: 'sub', text: `누적 ${fmt(l.cumSold, '권')}` })),
+            h('td', {}, h('span', { class: 'val', text: l.online == null ? '없음' : fmt(l.online, '권'), title: l.onlineRaw != null && l.onlineRaw < 0 ? `교보 원본 값 ${l.onlineRaw}. 데이터 오류로 0으로 표시` : null }),
+              deltaNode(r.dOnline, { unit: '권', neutral: true }),
+              l.onlineRaw != null && l.onlineRaw < 0 ? h('span', { class: 'sub', text: `원값 ${l.onlineRaw}` }) : null),
+            h('td', {}, h('span', { class: 'val', text: l.reviews == null ? '없음' : fmt(l.reviews, '건') }),
+              h('span', { class: 'sub', text: `교보 ${fmt(l.kReviews || 0)} · 예스24 ${fmt(l.yReviews || 0)}` }),
+              deltaNode(r.dRev, { unit: '건' })),
+          );
+        })));
+    };
+    sortSel.addEventListener('change', buildTable);
+    buildTable();
+  }
+
+  /* ======================================================================
+   * 7. 책 상세 화면
+   * ==================================================================== */
+  function renderDetail(id) {
+    const view = $('#view'); view.replaceChildren();
+    const bm = state.model.get(id);
+    if (!bm) { view.append(h('div', { class: 'empty', text: '해당 도서를 찾을 수 없습니다.' })); return; }
+    const b = bm.book, { last, prev, w7 } = bm;
+    if (!last) { view.append(h('div', { class: 'empty', text: '이 도서는 아직 수집된 데이터가 없습니다.' })); return; }
+    const win = windowDays(bm.days);
+    const xs = win.map(d => d.ms);
+    const baseP = baseLabel(bm, 'prev'), base7 = baseLabel(bm, 'w7');
+
+    // 머리
+    const kUrl = bookUrl(b, 'kyobo'), yUrl = bookUrl(b, 'yes24');
+    view.append(h('div', { class: 'book-head' },
+      h('h2', {}, b.title, last.status ? h('span', { class: 'status', text: last.status }) : null),
+      h('div', { class: 'sec', text: [b.author, b.publisher, b.pubDate ? `${b.pubDate} 출간` : null, b.isbn ? `ISBN ${b.isbn}` : null].filter(Boolean).join(' · ') }),
+      h('div', { class: 'links' },
+        kUrl ? h('a', { href: kUrl, target: '_blank', rel: 'noopener', text: '교보문고 상품 페이지' }) : h('span', { class: 'muted', text: '교보문고 미등록' }),
+        yUrl ? h('a', { href: yUrl, target: '_blank', rel: 'noopener', text: '예스24 상품 페이지' }) : h('span', { class: 'muted', text: '예스24 미등록' }),
+        last.yRankText ? h('span', { text: `예스24: ${last.yRankText}` }) : null,
+        last.price ? h('span', { text: `교보 판매가 ${fmt(last.price, '원')}` }) : null,
+        (last.kyoboError || last.yes24Error) ? h('span', { class: 'down', text: `최근 수집 실패: ${[last.kyoboError && '교보', last.yes24Error && '예스24'].filter(Boolean).join(', ')}` }) : null)));
+
+    // 타일
+    const dSales = diff(last, prev, 'salesIndex'), dSales7 = diff(last, w7, 'salesIndex');
+    const dRank = diff(last, prev, 'kRank'), dStore = diff(last, prev, 'storeTotal'), dOnline = diff(last, prev, 'online'), dRev = diff(last, prev, 'reviews');
+    const scoreText = [last.kScore != null ? `교보 ${last.kScore}` : null, last.yScore != null ? `예스24 ${last.yScore}` : null].filter(Boolean).join(' · ');
+    view.append(h('div', { class: 'tiles' },
+      tile('예스24 판매지수', last.salesIndex == null ? '없음' : fmt(last.salesIndex), '', h('span', {}, deltaNode(dSales), ` ${baseP}`), h('span', {}, deltaNode(dSales7), ` ${base7}`)),
+      tile(`교보 주간베스트${last.kRankLabel ? ' · ' + last.kRankLabel : ''}`, last.kRank != null ? fmt(last.kRank) : '순위권 밖', last.kRank != null ? '위' : '',
+        dRank != null ? h('span', {}, deltaNode(dRank, { rank: true }), ` ${baseP}`) : (prev && (prev.kRank != null) !== (last.kRank != null) ? `${last.kRank != null ? '순위 진입' : '순위 이탈'} · ${baseP}` : baseP)),
+      tile('교보 매장 재고 합계', last.storeTotal == null ? '없음' : fmt(last.storeTotal), '권', h('span', {}, deltaNode(dStore, { unit: '권', neutral: true }), ` ${baseP}`)),
+      tile('교보 온라인 재고', last.online == null ? '없음' : fmt(last.online), '권', h('span', {}, deltaNode(dOnline, { unit: '권', neutral: true }), ` ${baseP}`),
+        last.onlineRaw != null && last.onlineRaw < 0 ? `교보 원본 값 ${last.onlineRaw}. 데이터 오류로 0으로 표시` : null),
+      tile('매장 판매 추정(누적)', fmt(last.cumSold), '권', h('span', {}, h('b', { class: last.sold > 0 ? 'up' : '', text: fmt(prev ? last.sold : 0, '권') }), ` ${baseP}`), bm.first ? `첫 수집 ${bm.first.key} 이후 매장 재고 감소분 합계` : null),
+      tile('리뷰', last.reviews == null ? '없음' : fmt(last.reviews), '건', h('span', {}, deltaNode(dRev, { unit: '건' }), ` ${baseP}`), scoreText ? `평점 ${scoreText}` : null),
+    ));
+
+    // 차트
+    const kLabel = `교보 ${last.kRankLabel || bm.days.map(d => d.kRankLabel).filter(Boolean).pop() || '주간베스트'}`;
+    const yLabel = `예스24 ${last.yRankLabel || bm.days.map(d => d.yRankLabel).filter(Boolean).pop() || '베스트'}`;
+    const hasY = win.some(d => d.yRank != null);
+    const rankSeries = [{ name: kLabel, color: 'var(--s1)', values: win.map(d => d.kRank) }];
+    if (hasY) rankSeries.push({ name: yLabel, color: 'var(--s2)', values: win.map(d => d.yRank) });
+    const grid = h('div', { class: 'grid' },
+      figure({ title: '순위 추이', note: '위쪽이 높은 순위. 끊긴 구간은 순위권 밖. 예스24 순위는 판매지수가 충분할 때만 노출됩니다.',
+        legend: rankSeries.map(sr => ({ name: sr.name, color: sr.color })),
+        draw: (host, hh) => drawLine(host, hh, { xs, series: rankSeries, reverse: true, unit: '위', emptyText: '기간 내 순위권 진입 기록이 없습니다.' }),
+        table: () => ({ columns: ['날짜', ...rankSeries.map(sr => sr.name)], rows: win.map((d, i) => [d.key, ...rankSeries.map(sr => sr.values[i] == null ? '순위권 밖' : fmt(sr.values[i], '위'))]) }) }),
+      figure({ title: '예스24 판매지수 추이', note: '판매량과 최근성을 반영한 지수. 절판·판매 중단이면 표시되지 않습니다.',
+        draw: (host, hh) => drawLine(host, hh, { xs, series: [{ name: '판매지수', color: 'var(--s2)', values: win.map(d => d.salesIndex) }], area: true, emptyText: '기간 내 판매지수가 없습니다.' }),
+        table: () => ({ columns: ['날짜', '판매지수'], rows: win.map(d => [d.key, d.salesIndex == null ? '없음' : fmt(d.salesIndex)]) }) }),
+      figure({ title: '교보 재고 추이', note: '매장 합계는 37개 매장 재고의 합. 온라인 음수 값은 0으로 표시합니다.',
+        legend: [{ name: '매장 합계', color: 'var(--s1)' }, { name: '온라인', color: 'var(--s3)' }],
+        draw: (host, hh) => drawLine(host, hh, { xs, zero: true, unit: '권', series: [
+          { name: '매장 합계', color: 'var(--s1)', values: win.map(d => d.storeTotal) },
+          { name: '온라인', color: 'var(--s3)', values: win.map(d => d.online) }] }),
+        table: () => ({ columns: ['날짜', '매장 합계', '온라인', '온라인 원값'], rows: win.map(d => [d.key, fmt(d.storeTotal), fmt(d.online), d.onlineRaw == null ? '' : d.onlineRaw]) }) }),
+    );
+    view.append(grid);
+
+    // 매장별 재고 표
+    view.append(renderStores(bm, baseP));
+
+    // 리뷰
+    const rvSec = h('section', {}, h('h2', { class: 'sec-title', text: '독자 리뷰' }), h('div', { class: 'card' }, h('div', { class: 'empty', text: '리뷰를 불러오는 중입니다.' })));
+    view.append(rvSec);
+    loadReviews(id).then(data => { if (location.hash.slice(1) && decodeURIComponent(location.hash.slice(1)) === id) renderReviews(rvSec, data, bm); });
+  }
+
+  function renderStores(bm, baseP) {
+    const { last, prev, first } = bm;
+    const stores = last.stores || {};
+    const codes = Object.keys(stores);
+    const sec = h('section', {}, h('h2', { class: 'sec-title' }, '교보 매장별 재고', h('small', { text: `${baseP} 변화와 첫 수집 이후 감소분(판매 추정)` })));
+    if (!codes.length) { sec.append(h('div', { class: 'card' }, h('div', { class: 'empty', text: '매장 재고 데이터가 없습니다.' }))); return sec; }
+    const meta = state.stores;
+    const list = codes.map(c => ({
+      code: c, name: meta[c] ? meta[c].name : c, area: meta[c] ? meta[c].area : '', addr: meta[c] ? meta[c].addr : '',
+      cur: stores[c] || 0, prev: prev && prev.stores ? prev.stores[c] : null, start: first && first.stores ? first.stores[c] : null,
+      sold: last.cumSoldByStore[c] || 0, soldToday: prev ? (last.soldByStore[c] || 0) : 0,
+    })).sort((a, b) => b.cur - a.cur || b.sold - a.sold || a.name.localeCompare(b.name, 'ko'));
+    const max = Math.max(1, ...list.map(x => x.cur));
+    const byArea = {};
+    for (const x of list) byArea[x.area || '기타'] = (byArea[x.area || '기타'] || 0) + x.cur;
+    const inStock = list.filter(x => x.cur > 0).length;
+    const summary = Object.entries(byArea).map(([a, v]) => `${a} ${fmt(v, '권')}`).join(' · ');
+    const areaSel = h('select', { class: 'sel', 'aria-label': '지역' }, h('option', { value: '', text: '전체 지역' }), ...Object.keys(byArea).map(a => h('option', { value: a, text: a })));
+    const onlyStock = h('input', { type: 'checkbox', id: 'onlyStock' });
+    const tbl = h('table');
+    const build = () => {
+      const rows = list.filter(x => (!areaSel.value || (x.area || '기타') === areaSel.value) && (!onlyStock.checked || x.cur > 0 || x.sold > 0));
+      tbl.replaceChildren(
+        h('thead', {}, h('tr', {}, h('th', { class: 'l', text: '매장' }), h('th', { class: 'l', text: '지역' }), h('th', { text: '현재 재고' }), h('th', { text: baseP.replace(' 대비', '') }), h('th', { text: '첫 수집' }), h('th', { text: '판매 추정(누적)' }))),
+        h('tbody', {}, rows.length ? rows.map(x => {
+          const d = x.prev == null ? null : x.cur - x.prev;
+          return h('tr', { class: x.cur ? '' : 'quiet' },
+            h('td', { class: 'l', title: x.addr || null, text: x.name }),
+            h('td', { class: 'l' }, x.area ? h('span', { class: 'area-tag', text: x.area }) : ''),
+            h('td', {}, h('span', { class: 'bar', style: `width:${Math.round(56 * x.cur / max)}px` }), h('span', { class: 'val', text: String(x.cur) })),
+            h('td', {}, d == null ? h('span', { class: 'muted', text: '기준 없음' }) : h('span', { class: d < 0 ? 'down' : d > 0 ? 'up' : 'muted', text: d === 0 ? '±0' : signed(d) })),
+            h('td', {}, x.start == null ? h('span', { class: 'muted', text: '없음' }) : String(x.start)),
+            h('td', {}, h('span', { class: 'val' + (x.sold ? ' good' : ''), text: String(x.sold) }), x.soldToday ? h('span', { class: 'sub up', text: `오늘 +${x.soldToday}` }) : null));
+        }) : h('tr', {}, h('td', { colspan: 6, class: 'empty', text: '조건에 맞는 매장이 없습니다.' }))));
+    };
+    areaSel.addEventListener('change', build); onlyStock.addEventListener('change', build);
+    build();
+    sec.append(h('div', { class: 'card' },
+      h('div', { class: 'head', style: 'flex-wrap:wrap;align-items:center' },
+        h('div', { class: 'sec', text: `${codes.length}개 매장 중 ${inStock}곳 재고 보유 · ${summary}` }),
+        h('div', { style: 'display:flex;gap:12px;align-items:center;font-size:13px' }, areaSel, h('label', { for: 'onlyStock' }, onlyStock, ' 재고·판매 있는 매장만'))),
+      h('div', { class: 'tscroll' }, tbl)));
+    return sec;
+  }
+
+  /* ======================================================================
+   * 8. 리뷰
+   * ==================================================================== */
+  async function loadReviews(id) {
+    try {
+      const r = await fetch(`data/reviews/${encodeURIComponent(id)}.json`, { cache: 'no-cache' });
+      if (!r.ok) return null;
+      return await r.json();
+    } catch (e) { return null; }
+  }
+  const SCORE_BINS = [
+    { label: '0~2점', min: -Infinity, max: 2.5 }, { label: '2.5~4점', min: 2.5, max: 5 }, { label: '5~7점', min: 5, max: 7.5 },
+    { label: '7.5~9점', min: 7.5, max: 9.5 }, { label: '10점', min: 9.5, max: Infinity }];
+  const monthKey = d => (d || '').slice(0, 7);
+
+  function renderReviews(sec, data, bm) {
+    sec.replaceChildren(h('h2', { class: 'sec-title', text: '독자 리뷰' }));
+    if (!data) { sec.append(h('div', { class: 'card' }, h('div', { class: 'empty', text: '리뷰 데이터가 없습니다.' }))); return; }
+    const all = [
+      ...(data.kyobo || []).map(r => ({ ...r, src: 'kyobo', type: 'review' })),
+      ...(data.yes24 || []).map(r => ({ ...r, src: 'yes24', type: r.type || 'review' })),
+    ];
+    if (!all.length) { sec.append(h('div', { class: 'card' }, h('div', { class: 'empty', text: '아직 등록된 리뷰가 없습니다.' }))); return; }
+    const scored = all.filter(r => typeof r.score === 'number');
+    const avg = scored.length ? scored.reduce((a, r) => a + r.score, 0) / scored.length : null;
+    const kN = (data.kyobo || []).length, yN = (data.yes24 || []).length;
+    const purchased = all.filter(r => r.purchased).length;
+    const latest = all.map(r => r.date).filter(Boolean).sort().pop();
+    sec.append(h('div', { class: 'tiles' },
+      tile('리뷰 수', fmt(all.length), '건', `교보 ${fmt(kN)} · 예스24 ${fmt(yN)}`),
+      tile('평균 평점', avg == null ? '없음' : (Math.round(avg * 10) / 10).toString(), avg == null ? '' : '/10', `평점이 있는 리뷰 ${fmt(scored.length, '건')} 기준`),
+      tile('구매 인증', fmt(purchased), '건', all.length ? `전체의 ${Math.round(purchased / all.length * 100)}%` : null),
+      tile('최근 리뷰', latest || '없음', '', data.updated ? `리뷰 갱신 ${String(data.updated).slice(0, 10)}` : null),
+    ));
+
+    // 평점 분포 (출처별 누적)
+    const dist = SCORE_BINS.map(bin => ({
+      kyobo: scored.filter(r => r.src === 'kyobo' && r.score >= bin.min && r.score < bin.max).length,
+      yes24: scored.filter(r => r.src === 'yes24' && r.score >= bin.min && r.score < bin.max).length }));
+    // 월별 리뷰 수
+    const months = [];
+    const firstM = all.map(r => monthKey(r.date)).filter(Boolean).sort()[0];
+    if (firstM) {
+      const endKey = state.lastKey ? state.lastKey.slice(0, 7) : monthKey(latest);
+      let [y, m] = firstM.split('-').map(Number);
+      const [ey, em] = endKey.split('-').map(Number);
+      while (y < ey || (y === ey && m <= em)) { months.push(`${y}-${String(m).padStart(2, '0')}`); m++; if (m > 12) { m = 1; y++; } }
+    }
+    const monthly = months.map(mk => ({ kyobo: all.filter(r => r.src === 'kyobo' && monthKey(r.date) === mk).length, yes24: all.filter(r => r.src === 'yes24' && monthKey(r.date) === mk).length }));
+    const srcLegend = [{ name: '교보문고', color: 'var(--s1)', rect: true }, { name: '예스24', color: 'var(--s2)', rect: true }];
+    sec.append(h('div', { class: 'grid' },
+      figure({ title: '평점 분포', note: '10점 만점. 교보는 2.5점 단위, 예스24는 1점 단위 평점입니다.', legend: srcLegend, height: 200,
+        draw: (host, hh) => drawBars(host, hh, { cats: SCORE_BINS.map(b => b.label), unit: '건', capLabels: true, labelEvery: 1, series: [
+          { name: '교보문고', color: 'var(--s1)', values: dist.map(d => d.kyobo) }, { name: '예스24', color: 'var(--s2)', values: dist.map(d => d.yes24) }] }),
+        table: () => ({ columns: ['평점', '교보문고', '예스24', '합계'], rows: SCORE_BINS.map((b, i) => [b.label, dist[i].kyobo, dist[i].yes24, dist[i].kyobo + dist[i].yes24]) }) }),
+      figure({ title: '월별 리뷰 수', note: '리뷰 작성일 기준.', legend: srcLegend, height: 200,
+        draw: (host, hh) => drawBars(host, hh, { cats: months.map(mk => `${mk.slice(2, 4)}.${mk.slice(5, 7)}`), unit: '건', series: [
+          { name: '교보문고', color: 'var(--s1)', values: monthly.map(d => d.kyobo) }, { name: '예스24', color: 'var(--s2)', values: monthly.map(d => d.yes24) }] }),
+        table: () => ({ columns: ['월', '교보문고', '예스24', '합계'], rows: months.map((mk, i) => [mk, monthly[i].kyobo, monthly[i].yes24, monthly[i].kyobo + monthly[i].yes24]) }) }),
+    ));
+
+    // 목록
+    const sortSel = h('select', { class: 'sel', 'aria-label': '정렬' }, h('option', { value: 'date', text: '최신순' }), h('option', { value: 'likes', text: '공감순' }));
+    const srcSel = h('select', { class: 'sel', 'aria-label': '출처' }, h('option', { value: '', text: '전체 출처' }), h('option', { value: 'kyobo', text: '교보문고' }), h('option', { value: 'yes24', text: '예스24' }));
+    const listEl = h('div', { class: 'rv-list' });
+    const moreRow = h('div', { class: 'more-row' });
+    const countEl = h('span', { class: 'sec' });
+    let shown = 20;
+    const build = (reset) => {
+      if (reset) shown = 20;
+      const rows = all.filter(r => !srcSel.value || r.src === srcSel.value).sort((a, b) => {
+        if (sortSel.value === 'likes') return (b.likes || 0) - (a.likes || 0) || (b.date || '').localeCompare(a.date || '');
+        return (b.date || '').localeCompare(a.date || '') || (b.likes || 0) - (a.likes || 0);
+      });
+      countEl.textContent = `${fmt(rows.length)}건 중 ${fmt(Math.min(shown, rows.length))}건 표시`;
+      listEl.replaceChildren(rows.slice(0, shown).map(reviewCard));
+      moreRow.replaceChildren(rows.length > shown ? h('button', { class: 'btn', type: 'button', text: `더 보기 (${fmt(rows.length - shown)}건 남음)`, onclick: () => { shown += 20; build(false); } }) : null);
+    };
+    sortSel.addEventListener('change', () => build(true)); srcSel.addEventListener('change', () => build(true));
+    build(true);
+    sec.append(h('div', { class: 'card' }, h('div', { class: 'rv-controls' }, h('label', {}, '정렬 ', sortSel), h('label', {}, '출처 ', srcSel), countEl), listEl, moreRow));
+  }
+
+  function reviewCard(r) {
+    const text = String(r.text || '');
+    const long = text.length > 220;
+    const body = h('div', { class: 'rx' + (long ? ' clamp' : ''), text });
+    const toggle = long ? h('button', { class: 'linkbtn', type: 'button', text: '더 보기', onclick: () => {
+      const open = body.classList.toggle('clamp'); toggle.textContent = open ? '더 보기' : '접기'; } }) : null;
+    return h('article', { class: 'rv' },
+      h('div', { class: 'rh' },
+        h('span', { class: 'badge src ' + (r.src === 'kyobo' ? 'kyobo' : 'yes24'), text: r.src === 'kyobo' ? '교보문고' : '예스24' }),
+        r.type === 'oneline' ? h('span', { class: 'badge', text: '한줄평' }) : null,
+        r.purchased ? h('span', { class: 'badge', text: '구매 인증' }) : null,
+        r.tag ? h('span', { class: 'badge', text: String(r.tag) }) : null,
+        typeof r.score === 'number' ? h('span', { class: 'score', text: `${r.score}점` }) : null,
+        h('span', { text: r.date || '' }), r.author ? h('span', { text: String(r.author) }) : null),
+      r.title ? h('div', { class: 'rt', text: String(r.title) }) : null,
+      body,
+      h('div', { class: 'rf' }, h('span', { text: `공감 ${fmt(r.likes || 0)}` }), toggle));
+  }
+
+  /* ======================================================================
+   * 9. 상단·필터·라우팅
+   * ==================================================================== */
+  function renderMeta() {
+    const meta = $('#meta');
+    meta.replaceChildren();
+    if (!state.lastT) { meta.textContent = '수집된 데이터가 없습니다.'; return; }
+    meta.append(`마지막 수집 ${state.lastKey} ${state.lastT.slice(11, 16)} (KST)`);
+    const errs = [];
+    if (state.errors.kyobo) errs.push(`교보 ${state.errors.kyobo}권`);
+    if (state.errors.yes24) errs.push(`예스24 ${state.errors.yes24}권`);
+    if (errs.length) meta.append(' · ', h('span', { class: 'warn', text: `최근 수집 실패: ${errs.join(', ')}` }));
+  }
+  function route() {
+    const id = decodeURIComponent(location.hash.slice(1));
+    const detail = id && state.model.has(id);
+    $('#backBtn').classList.toggle('hidden', !detail);
+    $('#baseLabel').textContent = `비교 기준: ${detail ? baseLabel(state.model.get(id), 'prev') : globalBaseLabel()}`;
+    hideTip();
+    if (detail) { document.title = `${state.model.get(id).book.title} · 책 순위·재고 대시보드`; renderDetail(id); }
+    else { document.title = '책 순위·재고 대시보드'; renderOverview(); }
+    if (detail) window.scrollTo(0, 0);
+  }
+  $('#rangeSeg').addEventListener('click', e => {
+    const btn = e.target.closest('button'); if (!btn) return;
+    for (const x of $('#rangeSeg').children) x.setAttribute('aria-pressed', String(x === btn));
+    state.range = +btn.dataset.days;
+    route();
+  });
+  window.addEventListener('hashchange', route);
+  window.addEventListener('scroll', hideTip, { passive: true });
+
+  loadAll().then(() => { renderMeta(); route(); }).catch(err => {
+    $('#meta').textContent = '데이터를 불러오지 못했습니다.';
+    $('#view').replaceChildren(h('div', { class: 'empty', text: `오류: ${err && err.message ? err.message : err}` }));
+  });
 })();
 </script>
 </body>

@@ -5,15 +5,17 @@
 - data/history.jsonl : 스냅샷 1건 = 1줄 (누적)
 - data/latest.json   : 책별 최신 스냅샷
 - data/stores.json   : 교보문고 매장 코드 → 이름·지역 (매 실행마다 갱신)
-- data/reviews/<book>.json : 교보·예스24 리뷰 전체 (매 실행마다 덮어씀)
+- data/reviews/<book>.json : 교보·예스24·알라딘 리뷰 전체 (매 실행마다 덮어씀)
 
 표준 라이브러리만 사용한다.
 """
 import gzip
+import html as htmllib
 import io
 import json
 import re
 import sys
+import time
 import urllib.request
 import zlib
 from datetime import datetime, timedelta, timezone
@@ -184,8 +186,14 @@ def collect_yes24(gid):
 
 # ---------------------------------------------------------------- 알라딘
 def collect_aladin(isbn):
-    html = fetch(f"https://www.aladin.co.kr/shop/wproduct.aspx?ISBN={isbn}", accept="text/html")
+    html = ""
+    for attempt in range(3):
+        html = fetch(f"https://www.aladin.co.kr/shop/wproduct.aspx?ISBN={isbn}", accept="text/html")
+        if "Sales Point" in html:
+            break
+        time.sleep(2 + attempt * 2)
     text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html))
+    head = text[:text.find("기본정보")] if "기본정보" in text else text[:20000]
     out = {}
     m = re.search(r"ItemId=(\d+)", html)
     out["itemId"] = m.group(1) if m else None
@@ -197,10 +205,8 @@ def collect_aladin(isbn):
     out["commentCount"] = int(m.group(1)) if m else None
     m = re.search(r"([\d.]+)\s*점?\s*\(\s*(\d+)\s*명\s*\)|평점\s*([\d.]+)", text)
     ranks = []
-    for label, num in re.findall(r"([가-힣A-Za-z0-9/ ]{1,30}?)\s*(?:주간\s*)?([\d,]+)위", text[:20000]):
-        label = label.strip()
-        if label and ("top" in label.lower() or "베스트" in label or "주간" in label or len(label) < 20):
-            ranks.append({"label": label, "rank": int(num.replace(",", ""))})
+    for label, period, num in re.findall(r"([가-힣A-Za-z0-9/ ]{1,20}?)\s*(주간|월간)\s*([\d,]+)위", head):
+        ranks.append({"label": f"{label.strip()} {period}".strip(), "rank": int(num.replace(",", ""))})
     out["rank"] = ranks[:3]
     return out
 
@@ -234,7 +240,8 @@ def kyobo_reviews(pid):
 
 
 def _strip(html):
-    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html)).strip()
+    text = htmllib.unescape(re.sub(r"<[^>]+>", " ", html)).replace("\u200b", "")
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def yes24_reviews(gid):
@@ -311,12 +318,72 @@ def yes24_reviews(gid):
     return uniq
 
 
-def collect_reviews(book, now):
+def aladin_reviews(item_id):
+    """알라딘 리뷰(MyReview)와 100자평(CommentReview)."""
+    ref = f"https://www.aladin.co.kr/shop/wproduct.aspx?ItemId={item_id}"
+    out = []
+    for ctype, kind in (("MyReview", "review"), ("CommentReview", "oneline")):
+        start = 1
+        while start <= 100 * MAX_REVIEW_PAGES:
+            end = start + 99
+            html = fetch("https://www.aladin.co.kr/ucl/shop/product/ajax/GetCommunityListAjax.aspx"
+                         f"?ProductItemId={item_id}&itemId={item_id}&communitytype={ctype}"
+                         f"&nStart={start}&nEnd={end}&IsOrderRecommend=false&IsOrderTime=true"
+                         f"&IsPaperType=Product&pageCount=100&startNumber={start}&endNumber={end}&page=1&sort=&IsPurchaseGoods=false",
+                         referer=ref, accept="text/html")
+            blocks = re.findall(r'<div class="hundred_list">(.*?)(?=<div class="hundred_list">|<div class="review_number"|$)', html, re.S)
+            if not blocks:
+                break
+            for b in blocks:
+                pid = re.search(r"fn_toggle_mypaper\((\d+)|paperShort_(\d+)|divPaper(\d+)|fn_paper_recommend\('\w+', 'recom', (\d+)", b)
+                pid = next((g for g in (pid.groups() if pid else ()) if g), None)
+                stars = len(re.findall(r"icon_star_on", b))
+                title = re.search(r'class="Ere_str">(.*?)</span>', b, re.S)
+                body = re.search(r'<div id="divPaper\d+"[^>]*>(.*?)</div>', b, re.S)
+                if not body:
+                    body = re.search(r'<div id="paperShort_\d+"[^>]*>(.*?)</div>', b, re.S)
+                text = _strip(re.sub(r"<a [^>]*>\s*\+ 더보기\s*</a>", "", body.group(1))) if body else ""
+                if not text:
+                    # 100자평은 별도 구조: 별점 다음 첫 텍스트 블록
+                    txt = re.search(r'</div>\s*<div class="HL_write">(.*?)<div class="left">', b, re.S)
+                    text = _strip(re.sub(r'<span class="Ere_str">.*?</span>', "", txt.group(1))) if txt else _strip(b)[:300]
+                author = re.search(r'href="https://blog\.aladin\.co\.kr/\d+">([^<]*)<', b)
+                out.append({
+                    "id": f"a{pid}" if pid else None,
+                    "type": kind,
+                    "date": (re.search(r">(\d{4}-\d{2}-\d{2})<", b) or [None, None])[1],
+                    "score": stars * 2 if stars else None,
+                    "title": _strip(title.group(1)) if title else None,
+                    "author": author.group(1).strip() if author else None,
+                    "text": text,
+                    "likes": int((re.search(r"공감\((\d+)\)", b) or [None, "0"])[1]),
+                    "purchased": "구매자" in b,
+                })
+            if len(blocks) < 100:
+                break
+            start += 100
+    seen, uniq = set(), []
+    for r in out:
+        key = r["id"] or (r["date"], r["author"], r["text"][:40])
+        if key in seen:
+            continue
+        seen.add(key)
+        uniq.append(r)
+    return uniq
+
+
+def collect_reviews(book, now, aladin_item_id=None):
     path = DATA / "reviews" / f"{book['id']}.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     prev = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-    out = {"updated": now.isoformat(), "kyobo": prev.get("kyobo", []), "yes24": prev.get("yes24", [])}
+    out = {"updated": now.isoformat(), "kyobo": prev.get("kyobo", []), "yes24": prev.get("yes24", []),
+           "aladin": prev.get("aladin", [])}
     errors = []
+    if aladin_item_id:
+        try:
+            out["aladin"] = aladin_reviews(aladin_item_id)
+        except Exception as e:  # noqa: BLE001
+            errors.append(f"aladin: {type(e).__name__}: {e}")
     if book.get("kyobo"):
         try:
             out["kyobo"] = kyobo_reviews(book["kyobo"])
@@ -330,7 +397,7 @@ def collect_reviews(book, now):
     if errors:
         out["errors"] = errors
     path.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
-    return len(out["kyobo"]), len(out["yes24"]), errors
+    return len(out["kyobo"]), len(out["yes24"]) + len(out["aladin"]), errors
 
 
 # ---------------------------------------------------------------- main
@@ -369,8 +436,9 @@ def main():
             except Exception as e:  # noqa: BLE001
                 snap["aladinError"] = f"{type(e).__name__}: {e}"
                 print(f"[aladin] {book['id']}: {e}", file=sys.stderr)
-        nk, ny, rerr = collect_reviews(book, now)
-        snap["reviews"] = {"kyobo": nk, "yes24": ny}
+        nk, ny, rerr = collect_reviews(book, now, (snap.get("aladin") or {}).get("itemId"))
+        snap["reviews"] = {"kyobo": nk, "yes24": ny - len(json.loads((DATA / "reviews" / f"{book['id']}.json").read_text(encoding="utf-8")).get("aladin", [])),
+                           "aladin": len(json.loads((DATA / "reviews" / f"{book['id']}.json").read_text(encoding="utf-8")).get("aladin", []))}
         for msg in rerr:
             print(f"[reviews] {book['id']}: {msg}", file=sys.stderr)
         latest[book["id"]] = snap
