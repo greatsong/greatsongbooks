@@ -186,18 +186,18 @@ def collect_yes24(gid):
 
 # ---------------------------------------------------------------- 알라딘
 def collect_aladin(isbn):
-    html = ""
+    html, text = "", ""
     for attempt in range(3):
         html = fetch(f"https://www.aladin.co.kr/shop/wproduct.aspx?ISBN={isbn}", accept="text/html")
-        if "Sales Point" in html:
+        text = re.sub(r"\s+", " ", htmllib.unescape(re.sub(r"<[^>]+>", " ", html)))
+        if re.search(r"Sales\s*Point", text):
             break
         time.sleep(2 + attempt * 2)
-    text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html))
     head = text[:text.find("기본정보")] if "기본정보" in text else text[:20000]
     out = {}
     m = re.search(r"ItemId=(\d+)", html)
     out["itemId"] = m.group(1) if m else None
-    m = re.search(r"Sales Point\s*:\s*([\d,]+)", text)
+    m = re.search(r"Sales\s*Point\s*:?\s*([\d,]+)", text)
     out["salesPoint"] = int(m.group(1).replace(",", "")) if m else None
     m = re.search(r"리뷰\((\d+)\)", text)
     out["reviewCount"] = int(m.group(1)) if m else None

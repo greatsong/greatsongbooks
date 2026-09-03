@@ -121,7 +121,7 @@
   td .sub.up { color: var(--good); } td .sub.down { color: var(--bad); }
   tr.quiet td .val { color: var(--ink-2); }
   tr.sold td { background: var(--wash); }
-  table.ov th:first-child, table.ov td:first-child { position: sticky; left: 0; background: var(--surface); z-index: 1; max-width: 240px; white-space: normal; min-width: 160px; }
+  table.ov th:first-child, table.ov td:first-child { text-align: left; position: sticky; left: 0; background: var(--surface); z-index: 1; max-width: 240px; white-space: normal; min-width: 160px; }
   table.ov tr.sold td:first-child { background: color-mix(in srgb, var(--surface), var(--s1) 8%); }
   table.ov td:first-child a { font-weight: 600; text-decoration: none; }
   table.ov td:first-child a:hover { text-decoration: underline; }
@@ -241,6 +241,9 @@
   const DAY = 86400000;
   const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
   const $ = (sel, root = document) => root.querySelector(sel);
+  // ?theme=dark|light 로 테마를 고정할 수 있다(기본은 시스템 설정).
+  const themeParam = new URLSearchParams(location.search).get('theme');
+  if (themeParam === 'dark' || themeParam === 'light') document.documentElement.dataset.theme = themeParam;
 
   // DOM 생성 헬퍼. 텍스트는 항상 textContent 경로로 넣어 XSS 를 막는다.
   function h(tag, attrs = {}, ...children) {
@@ -638,16 +641,18 @@
   /* ======================================================================
    * 5. 공용 렌더 조각
    * ==================================================================== */
-  function deltaNode(d, { unit = '', lowerIsBetter = false, neutral = false, rank = false } = {}) {
-    if (d == null) return h('span', { class: 'sub muted', text: '기준 없음' });
-    if (d === 0) return h('span', { class: 'sub muted', text: '±0' });
+  // 변화량 표시. suffix 는 비교 기준 라벨 등 뒤에 붙는 회색 글자.
+  function deltaNode(d, { unit = '', lowerIsBetter = false, neutral = false, rank = false } = {}, suffix = '') {
+    const tail = suffix ? h('span', { class: 'muted', text: ' ' + suffix }) : null;
+    if (d == null) return h('span', { class: 'sub muted', text: '기준 없음' + (suffix ? ' · ' + suffix : '') });
+    if (d === 0) return h('span', { class: 'sub muted', text: '±0' + (suffix ? ' ' + suffix : '') });
     if (rank) { // 순위: 숫자가 줄면 상승
       const up = d < 0;
-      return h('span', { class: 'sub ' + (up ? 'up' : 'down'), text: `${up ? '▲' : '▼'}${fmt(Math.abs(d))}` });
+      return h('span', { class: 'sub ' + (up ? 'up' : 'down') }, `${up ? '▲' : '▼'}${fmt(Math.abs(d))}`, tail);
     }
-    if (neutral) return h('span', { class: 'sub', text: signed(d, unit) });
+    if (neutral) return h('span', { class: 'sub' }, signed(d, unit), tail);
     const good = lowerIsBetter ? d < 0 : d > 0;
-    return h('span', { class: 'sub ' + (good ? 'up' : 'down'), text: signed(d, unit) });
+    return h('span', { class: 'sub ' + (good ? 'up' : 'down') }, signed(d, unit), tail);
   }
   function tile(label, value, unit, ...notes) {
     return h('div', { class: 'tile' }, h('div', { class: 'k', text: label }),
@@ -752,8 +757,7 @@
             h('td', {}, h('a', { href: '#' + encodeURIComponent(b.id), text: b.title }),
               h('span', { class: 'sub', text: `${b.publisher || ''} · ${b.pubDate || ''}${l.status && l.status !== '판매중' ? ' · ' + l.status : ''}` })),
             h('td', {}, h('span', { class: 'val', text: l.salesIndex == null ? (l.yes24 ? '없음' : '수집 실패') : fmt(l.salesIndex) }),
-              h('span', { class: 'sub' }, deltaNode(r.dSales), ' 전일'),
-              h('span', { class: 'sub' }, deltaNode(r.dSales7), ' 7일')),
+              deltaNode(r.dSales, {}, '전일'), deltaNode(r.dSales7, {}, '7일')),
             h('td', { class: 'l' }, sparkline(win.map(d => d.salesIndex), 'var(--s2)')),
             h('td', {}, h('span', { class: 'val', text: rankText(l) }),
               l.kRankLabel ? h('span', { class: 'sub', text: l.kRankLabel }) : null,
@@ -821,7 +825,7 @@
     const rankSeries = [{ name: kLabel, color: 'var(--s1)', values: win.map(d => d.kRank) }];
     if (hasY) rankSeries.push({ name: yLabel, color: 'var(--s2)', values: win.map(d => d.yRank) });
     const grid = h('div', { class: 'grid' },
-      figure({ title: '순위 추이', note: '위쪽이 높은 순위. 끊긴 구간은 순위권 밖. 예스24 순위는 판매지수가 충분할 때만 노출됩니다.',
+      figure({ title: hasY ? '순위 추이' : `${kLabel} 순위 추이`, note: '위쪽이 높은 순위. 끊긴 구간은 순위권 밖. 예스24 순위는 판매지수가 충분할 때만 노출됩니다.',
         legend: rankSeries.map(sr => ({ name: sr.name, color: sr.color })),
         draw: (host, hh) => drawLine(host, hh, { xs, series: rankSeries, reverse: true, unit: '위', emptyText: '기간 내 순위권 진입 기록이 없습니다.' }),
         table: () => ({ columns: ['날짜', ...rankSeries.map(sr => sr.name)], rows: win.map((d, i) => [d.key, ...rankSeries.map(sr => sr.values[i] == null ? '순위권 밖' : fmt(sr.values[i], '위'))]) }) }),
@@ -966,7 +970,7 @@
         return (b.date || '').localeCompare(a.date || '') || (b.likes || 0) - (a.likes || 0);
       });
       countEl.textContent = `${fmt(rows.length)}건 중 ${fmt(Math.min(shown, rows.length))}건 표시`;
-      listEl.replaceChildren(rows.slice(0, shown).map(reviewCard));
+      listEl.replaceChildren(...rows.slice(0, shown).map(reviewCard));
       moreRow.replaceChildren(rows.length > shown ? h('button', { class: 'btn', type: 'button', text: `더 보기 (${fmt(rows.length - shown)}건 남음)`, onclick: () => { shown += 20; build(false); } }) : null);
     };
     sortSel.addEventListener('change', () => build(true)); srcSel.addEventListener('change', () => build(true));
