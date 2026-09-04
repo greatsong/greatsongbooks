@@ -778,7 +778,7 @@
   // 변화량 표시. suffix 는 비교 기준 라벨 등 뒤에 붙는 회색 글자.
   function deltaNode(d, { unit = '', lowerIsBetter = false, neutral = false, rank = false } = {}, suffix = '') {
     const tail = suffix ? h('span', { class: 'muted', text: ' ' + suffix }) : null;
-    if (d == null) return h('span', { class: 'sub muted', text: '기준 없음' + (suffix ? ' · ' + suffix : '') });
+    if (d == null) return h('span', { class: 'sub muted', text: suffix === '비교 기준 없음' ? '비교 기준 없음 · 다음 수집부터 변화가 표시됩니다' : '기준 없음' + (suffix ? ' · ' + suffix : '') });
     if (d === 0) return h('span', { class: 'sub muted', text: '±0' + (suffix ? ' ' + suffix : '') });
     if (rank) { // 순위: 숫자가 줄면 상승
       const up = d < 0;
@@ -791,7 +791,7 @@
   function tile(label, value, unit, ...notes) {
     return h('div', { class: 'tile' }, h('div', { class: 'k', text: label }),
       h('div', { class: 'v' }, value, unit ? h('small', { text: unit }) : null),
-      ...notes.filter(Boolean).map(n => h('div', { class: 'd' }, n)));
+      ...notes.filter(Boolean).filter((n, i, arr) => arr.findIndex(m => (m.textContent || m) === (n.textContent || n)) === i).map(n => h('div', { class: 'd' }, n)));
   }
   const rankText = d => d && d.kRank != null ? fmt(d.kRank, '위') : '순위권 밖';
   function bookUrl(bm, site) {
@@ -1023,7 +1023,8 @@
     const { last, prev, first } = bm;
     const stores = last.stores || {};
     const codes = Object.keys(stores);
-    const sec = h('section', {}, h('h2', { class: 'sec-title' }, '교보 매장별 재고', h('small', { text: `${baseP} 변화와 첫 수집 이후 감소분(판매 추정)` })));
+    const noBase = baseP === '비교 기준 없음';
+    const sec = h('section', {}, h('h2', { class: 'sec-title' }, '교보 매장별 재고', h('small', { text: noBase ? '첫 수집 이후 감소분(판매 추정). 전일 대비 변화는 다음 수집부터 표시됩니다' : `${baseP} 변화와 첫 수집 이후 감소분(판매 추정)` })));
     if (!codes.length) { sec.append(h('div', { class: 'card' }, h('div', { class: 'empty', text: '매장 재고 데이터가 없습니다.' }))); return sec; }
     const meta = state.stores;
     const list = codes.map(c => ({
@@ -1042,14 +1043,14 @@
     const build = () => {
       const rows = list.filter(x => (!areaSel.value || (x.area || '기타') === areaSel.value) && (!onlyStock.checked || x.cur > 0 || x.sold > 0));
       tbl.replaceChildren(
-        h('thead', {}, h('tr', {}, h('th', { class: 'l', text: '매장' }), h('th', { class: 'l', text: '지역' }), h('th', { text: '현재 재고' }), h('th', { text: baseP.replace(' 대비', '') }), h('th', { text: '첫 수집' }), h('th', { text: '판매 추정(누적)' }))),
+        h('thead', {}, h('tr', {}, h('th', { class: 'l', text: '매장' }), h('th', { class: 'l', text: '지역' }), h('th', { text: '현재 재고' }), h('th', { text: noBase ? '전일 대비' : baseP.replace(' 대비', '') }), h('th', { text: '첫 수집' }), h('th', { text: '판매 추정(누적)' }))),
         h('tbody', {}, rows.length ? rows.map(x => {
           const d = x.prev == null ? null : x.cur - x.prev;
           return h('tr', { class: x.cur ? '' : 'quiet' },
             h('td', { class: 'l', title: x.addr || null, text: x.name }),
             h('td', { class: 'l' }, x.area ? h('span', { class: 'area-tag', text: x.area }) : ''),
             h('td', {}, h('span', { class: 'bar', style: `width:${Math.round(56 * x.cur / max)}px` }), h('span', { class: 'val', text: String(x.cur) })),
-            h('td', {}, d == null ? h('span', { class: 'muted', text: '기준 없음' }) : h('span', { class: d < 0 ? 'down' : d > 0 ? 'up' : 'muted', text: d === 0 ? '±0' : signed(d) })),
+            h('td', {}, d == null ? h('span', { class: 'muted', text: '–' }) : h('span', { class: d < 0 ? 'down' : d > 0 ? 'up' : 'muted', text: d === 0 ? '±0' : signed(d) })),
             h('td', {}, x.start == null ? h('span', { class: 'muted', text: '없음' }) : String(x.start)),
             h('td', {}, h('span', { class: 'val' + (x.sold ? ' good' : ''), text: String(x.sold) }), x.soldToday ? h('span', { class: 'sub up', text: `오늘 +${x.soldToday}` }) : null));
         }) : h('tr', {}, h('td', { colspan: 6, class: 'empty', text: '조건에 맞는 매장이 없습니다.' }))));
