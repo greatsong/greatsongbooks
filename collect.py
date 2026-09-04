@@ -318,9 +318,18 @@ def yes24_reviews(gid):
     return uniq
 
 
-def aladin_reviews(item_id):
-    """알라딘 리뷰(MyReview)와 100자평(CommentReview)."""
+def aladin_full_text(paper_id, ctype, ref):
+    """목록에는 앞부분만 오므로 잘린 리뷰는 전문을 따로 받는다."""
+    html = fetch("https://www.aladin.co.kr/ucl/shop/product/ajax/viewmypaperall_v2.aspx"
+                 f"?paperid={paper_id}&IsMore=1&communityType={ctype}", referer=ref, accept="text/html")
+    text = _strip(re.sub(r"<br\s*/?>", " ", html))
+    return re.sub(r"\s*-\s*접기\s*$", "", text).strip()
+
+
+def aladin_reviews(item_id, prev=None):
+    """알라딘 리뷰(MyReview)와 100자평(CommentReview). prev: 이전 수집분(전문 캐시)."""
     ref = f"https://www.aladin.co.kr/shop/wproduct.aspx?ItemId={item_id}"
+    cache = {r.get("id"): r for r in (prev or []) if r.get("id") and r.get("full")}
     out = []
     for ctype, kind in (("MyReview", "review"), ("CommentReview", "oneline")):
         start = 1
@@ -348,8 +357,20 @@ def aladin_reviews(item_id):
                     txt = re.search(r'</div>\s*<div class="HL_write">(.*?)<div class="left">', b, re.S)
                     text = _strip(re.sub(r'<span class="Ere_str">.*?</span>', "", txt.group(1))) if txt else _strip(b)[:300]
                 author = re.search(r'href="https://blog\.aladin\.co\.kr/\d+">([^<]*)<', b)
+                truncated = bool(re.search(r"\+\s*더보기", b)) or text.endswith("...")
+                full = False
+                rid = f"a{pid}" if pid else None
+                if truncated and rid in cache:
+                    text, full = cache[rid]["text"], True
+                elif truncated and pid:
+                    try:
+                        text, full = aladin_full_text(pid, ctype, ref), True
+                        time.sleep(0.3)
+                    except Exception:  # noqa: BLE001
+                        pass
                 out.append({
-                    "id": f"a{pid}" if pid else None,
+                    "id": rid,
+                    "full": full,
                     "type": kind,
                     "date": (re.search(r">(\d{4}-\d{2}-\d{2})<", b) or [None, None])[1],
                     "score": stars * 2 if stars else None,
@@ -381,7 +402,7 @@ def collect_reviews(book, now, aladin_item_id=None):
     errors = []
     if aladin_item_id:
         try:
-            out["aladin"] = aladin_reviews(aladin_item_id)
+            out["aladin"] = aladin_reviews(aladin_item_id, prev.get("aladin"))
         except Exception as e:  # noqa: BLE001
             errors.append(f"aladin: {type(e).__name__}: {e}")
     if book.get("kyobo"):

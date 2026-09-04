@@ -1,5 +1,5 @@
 {
- "updated": "2026-09-04T08:44:26+09:00",
+ "updated": "2026-09-04T10:43:56+09:00",
  "kyobo": [
   {
    "id": "k15606659",
@@ -97,6 +97,7 @@
  "aladin": [
   {
    "id": "a16350298",
+   "full": false,
    "type": "oneline",
    "date": "2025-04-01",
    "score": 10,
@@ -108,6 +109,7 @@
   },
   {
    "id": "a16340414",
+   "full": false,
    "type": "oneline",
    "date": "2025-03-30",
    "score": 10,
@@ -119,6 +121,7 @@
   },
   {
    "id": "a16338192",
+   "full": false,
    "type": "oneline",
    "date": "2025-03-29",
    "score": 10,
