@@ -93,6 +93,18 @@
   .picker input { margin-top: 3px; }
 
   /* ---------- 카드·타일 ---------- */
+  .grid.g3 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-items: start; }
+  .card.wide { grid-column: 1 / -1; }
+  .card.wide .fig { overflow-x: auto; }
+  .card.focus { margin-bottom: 14px; }
+  .focus .head h2 a { color: inherit; text-decoration: none; }
+  .focus .head h2 a:hover { text-decoration: underline; }
+  .stats { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 6px 0 12px; }
+  .stats .st .k { font-size: 11.5px; color: var(--muted); }
+  .stats .st .v { font-size: 18px; font-weight: 700; line-height: 1.2; }
+  .stats .st .sub { display: block; font-size: 11.5px; }
+  .mini { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .mini h3 { font-size: 12px; font-weight: 600; color: var(--ink-2); margin: 0 0 2px; }
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
   .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; min-width: 0; }
   .tile .k { color: var(--ink-2); font-size: 12px; margin-bottom: 4px; }
@@ -242,7 +254,7 @@
   <div class="filters" id="filters">
     <a class="btn hidden" id="backBtn" href="#">전체 도서로</a>
     <label class="hidden" id="jumpLabel" for="jumpSel">다른 책 <select class="sel" id="jumpSel" aria-label="다른 책 보기"></select></label>
-    <button type="button" class="btn" id="pickBtn" aria-expanded="false" aria-controls="picker">도서 선택</button>
+    <button type="button" class="btn" id="pickBtn" aria-expanded="false" aria-controls="picker">주요 도서 선택</button>
     <label for="rangeSeg">기간</label>
     <div class="seg" id="rangeSeg" role="group" aria-label="기간">
       <button type="button" data-days="7">7일</button>
@@ -578,6 +590,83 @@
   }
 
   /** 가로 100% 누적 막대 + 값 범례. segments: [{label, value, color}] */
+  const trunc = (t, n) => (t.length > n ? t.slice(0, n - 1) + '…' : t);
+  // 차트용 짧은 제목: 부제(콜론 뒤)를 떼고 권수는 남긴다.
+  const shortTitle = t => String(t || '').split(/\s*[:：]\s*/)[0].replace(/\s*\(.*?\)\s*$/, '').trim() || String(t || '');
+
+  /** 가로 막대(도서 비교). series 는 누적. links 는 행 라벨 링크, extras 는 값 옆 보조 텍스트({text,color}). */
+  function drawHBars(host, _height, { cats, series, unit = '', links = [], valueText, extras = [] }) {
+    host.replaceChildren();
+    const W = Math.max(240, host.clientWidth || 600);
+    const n = cats.length, rowH = 26;
+    const m = { t: 4, r: 110, b: 4, l: Math.round(clamp(W * 0.38, 120, 230)) };
+    const H = m.t + n * rowH + m.b;
+    const totals = cats.map((_, i) => series.reduce((a, sr) => a + (sr.values[i] || 0), 0));
+    const hi = Math.max(1, ...totals);
+    const pw = W - m.l - m.r;
+    const X = v => m.l + v / hi * pw;
+    const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', 'aria-label': `${series.map(a => a.name).join(', ')} 가로 막대 차트` });
+    const maxChars = Math.max(6, Math.floor(m.l / 10.5));
+    cats.forEach((c, i) => {
+      const y = m.t + i * rowH, bh = 14, by = y + (rowH - bh) / 2, ty = y + rowH / 2 + 4;
+      const g = s('g');
+      let lt = shortTitle(c); if (lt.length > maxChars) lt = lt.replace(/^[가-힣]{2,4}의\s+/, '');
+      const lab = s('text', { x: m.l - 8, y: ty, 'text-anchor': 'end', fill: 'var(--ink-2)' }, trunc(lt, maxChars));
+      lab.append(s('title', {}, c));
+      if (links[i]) { const a = s('a', { href: links[i] }); a.append(lab); g.append(a); } else g.append(lab);
+      let acc = 0;
+      series.forEach(sr => {
+        const v = sr.values[i] || 0; if (v <= 0) return;
+        const x0 = X(acc), x1 = X(acc + v), gap = acc > 0 ? 2 : 0;
+        g.append(s('rect', { class: 'bar-seg', x: x0 + gap, y: by, width: Math.max(1, x1 - x0 - gap), height: bh, rx: 3, fill: sr.color }));
+        acc += v;
+      });
+      const vt = valueText ? valueText(i) : fmt(totals[i], unit);
+      g.append(s('text', { x: X(totals[i]) + 6, y: ty, fill: 'var(--ink)' }, vt));
+      if (extras[i]) g.append(s('text', { x: X(totals[i]) + 6 + vt.length * 6.6 + 6, y: ty, fill: extras[i].color }, extras[i].text));
+      const hit = s('rect', { class: 'hit', x: 0, y, width: W, height: rowH });
+      hit.addEventListener('pointermove', e => {
+        g.classList.add('hover');
+        showTip(e.clientX, e.clientY, c, series.map(sr => ({ color: sr.color, rect: true, name: sr.name, value: sr.values[i] == null ? '없음' : fmt(sr.values[i], unit) })), extras[i] ? extras[i].text : null);
+      });
+      hit.addEventListener('pointerleave', () => { g.classList.remove('hover'); hideTip(); });
+      svg.append(g, hit);
+    });
+    host.append(svg);
+  }
+
+  /** 히트맵: rows [{label, link}], cols [{code,label,area}], values[r][c] (null = 데이터 없음). 순차 램프 한 색. */
+  function drawHeat(host, _height, { rows, cols, values }) {
+    host.replaceChildren();
+    const cw = 20, ch = 20, gap = 2, lw = 200, th = 76;
+    const W = lw + cols.length * (cw + gap) + 8, H = th + rows.length * (ch + gap) + 6;
+    const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', 'aria-label': '도서별 매장 재고 히트맵' });
+    const bin = v => v <= 0 ? 'var(--chip)' : v === 1 ? 'var(--p1)' : v === 2 ? 'var(--p2)' : v <= 4 ? 'var(--p3)' : v <= 9 ? 'var(--p4)' : 'var(--p5)';
+    let prevArea = null;
+    cols.forEach((c, j) => {
+      const x = lw + j * (cw + gap) + cw / 2;
+      svg.append(s('text', { x, y: th - 8, transform: `rotate(-60 ${x} ${th - 8})`, fill: 'var(--ink-2)' }, c.label));
+      if (prevArea !== null && c.area !== prevArea) { const lx = lw + j * (cw + gap) - gap / 2; svg.append(s('line', { class: 'base-line', x1: lx, x2: lx, y1: th - 4, y2: H - 4 })); }
+      prevArea = c.area;
+    });
+    rows.forEach((r, i) => {
+      const y = th + i * (ch + gap);
+      const lab = s('text', { x: lw - 8, y: y + ch / 2 + 4, 'text-anchor': 'end', fill: 'var(--ink-2)' }, trunc(shortTitle(r.label), 18));
+      lab.append(s('title', {}, r.label));
+      const a = s('a', { href: r.link }); a.append(lab); svg.append(a);
+      cols.forEach((c, j) => {
+        const v = values[i][j], x = lw + j * (cw + gap);
+        const g = s('g');
+        g.append(s('rect', { x, y, width: cw, height: ch, rx: 3, fill: v == null ? 'transparent' : bin(v), stroke: v == null ? 'var(--grid)' : 'none' }));
+        if (v > 0) g.append(s('text', { x: x + cw / 2, y: y + ch / 2 + 4, 'text-anchor': 'middle', fill: v >= 3 ? '#fff' : 'var(--ink)' }, v));
+        g.addEventListener('pointermove', e => showTip(e.clientX, e.clientY, r.label, [{ name: `${c.label} (${c.area})`, value: v == null ? '없음' : fmt(v, '권') }]));
+        g.addEventListener('pointerleave', hideTip);
+        svg.append(g);
+      });
+    });
+    host.append(svg);
+  }
+
   function stackBar(segments, unit) {
     const total = segments.reduce((a, x) => a + (x.value || 0), 0);
     const bar = h('div', { class: 'stack', role: 'img', 'aria-label': segments.map(x => `${x.label} ${fmt(x.value || 0, unit)}`).join(', ') });
@@ -763,7 +852,7 @@
     }
     const n = state.selected.size, N = state.books.length;
     $('#pickCount').textContent = `${N}권 중 ${n}권 선택`;
-    $('#pickBtn').textContent = `도서 선택 (${n}/${N})`;
+    $('#pickBtn').textContent = `주요 도서 (${n}/${N})`;
   }
   $('#pickBtn').addEventListener('click', () => {
     const open = $('#picker').classList.toggle('hidden');
@@ -811,11 +900,9 @@
    * ==================================================================== */
   function renderOverview() {
     const view = $('#view'); view.replaceChildren();
-    if (!state.selected.size) { view.append(h('div', { class: 'empty', text: '선택한 도서가 없습니다. 상단의 도서 선택에서 책을 고르십시오.' })); return; }
-    const items = selectedBooks().map(b => state.model.get(b.id)).filter(bm => bm.last);
-    if (!items.length) { view.append(h('div', { class: 'empty', text: '선택한 도서에 수집된 데이터가 없습니다.' })); return; }
-
-    const rowsData = items.map(bm => {
+    const all = state.books.map(b => state.model.get(b.id)).filter(bm => bm && bm.last);
+    if (!all.length) { view.append(h('div', { class: 'empty', text: '수집된 데이터가 없습니다.' })); return; }
+    const rowsData = all.map(bm => {
       const { last, prev, w7 } = bm;
       const r = {
         bm, last,
@@ -852,6 +939,10 @@
       tile('교보 매장 재고 합계', fmt(storeSum), '권', deltaNode(storeDelta, { unit: '권', neutral: true }, base)),
     ));
 
+
+    // 전체 현황 차트
+    renderOverallCharts(view, rowsData, all);
+
     // 변화 패널
     const moved = rowsData.filter(r => r.moved).sort((a, b) => b.score - a.score);
     const panel = h('section', {}, h('h2', { class: 'sec-title' }, '무엇이 달라졌는가', h('small', { text: base })));
@@ -873,6 +964,10 @@
     }))));
     view.append(panel);
 
+
+    // 주요 도서(선택한 책) 상세 카드
+    renderFocus(view, rowsData);
+
     // 전체 표
     const sortSel = h('select', { class: 'sel', 'aria-label': '정렬' },
       h('option', { value: 'move', text: '변화순' }), h('option', { value: 'sales', text: '예스24 판매지수순' }),
@@ -880,7 +975,7 @@
     const tbl = h('table', { class: 'ov' });
     view.append(h('section', {},
       h('div', { class: 'sec-head' },
-        h('h2', { class: 'sec-title' }, '선택 도서', h('small', { text: `${items.length}권 · 추이는 ${state.range ? '최근 ' + state.range + '일' : '전체 기간'}` })),
+        h('h2', { class: 'sec-title' }, '전체 도서 표', h('small', { text: `${all.length}권 · 추이는 ${state.range ? '최근 ' + state.range + '일' : '전체 기간'}` })),
         h('label', {}, '정렬 ', sortSel)),
       h('div', { class: 'card', style: 'padding:4px 8px' }, h('div', { class: 'tscroll' }, tbl))));
 
@@ -930,6 +1025,127 @@
     };
     sortSel.addEventListener('change', buildTable);
     buildTable();
+  }
+
+  /* 전체 현황: 도서 비교 가로 막대, 매장 히트맵, 전체 합계 추이 */
+  function renderOverallCharts(view, rowsData, all) {
+    const grid = h('div', { class: 'grid g3' });
+    const link = r => '#' + encodeURIComponent(r.bm.book.id);
+    const byVal = f => rowsData.filter(r => f(r.last) != null).sort((a, b) => f(b.last) - f(a.last));
+    const ex = (d, opts = {}) => (d == null || d === 0) ? null
+      : { text: opts.rank ? (d < 0 ? '▲' : '▼') + fmt(Math.abs(d)) : signed(d), color: (opts.rank ? d < 0 : d > 0) ? 'var(--good)' : 'var(--bad)' };
+    const missing = (n, what) => n > 0 ? ` ${n}권은 ${what}.` : '';
+    const hfig = ({ title, note, rows, series, unit = '', valueText, extras, legend, tableRows }) => figure({ title, note, legend,
+      draw: host => drawHBars(host, 0, { cats: rows.map(r => r.bm.book.title), links: rows.map(link), series, unit, valueText, extras }),
+      table: () => ({ columns: ['도서', ...series.map(sr => sr.name)], rows: tableRows || rows.map((r, i) => [r.bm.book.title, ...series.map(sr => fmt(sr.values[i], unit))]) }) });
+    const N = rowsData.length;
+
+    let rows = byVal(l => l.salesIndex);
+    if (rows.length) grid.append(hfig({ title: '예스24 판매지수', note: '높을수록 최근 판매가 많습니다. 값 옆은 전일 대비 변화.' + missing(N - rows.length, '미등록 또는 판매 중단'), rows,
+      series: [{ name: '판매지수', color: 'var(--s2)', values: rows.map(r => r.last.salesIndex) }], extras: rows.map(r => ex(r.dSales)) }));
+    rows = byVal(l => l.salesPoint);
+    if (rows.length) grid.append(hfig({ title: '알라딘 Sales Point', note: '알라딘 판매지수. 값 옆은 전일 대비 변화.' + missing(N - rows.length, '데이터 없음'), rows,
+      series: [{ name: 'Sales Point', color: 'var(--s3)', values: rows.map(r => r.last.salesPoint) }], extras: rows.map(r => ex(r.dSP)) }));
+    rows = rowsData.filter(r => r.last.storeTotal != null || r.last.online != null)
+      .sort((a, b) => ((b.last.storeTotal || 0) + (b.last.online || 0)) - ((a.last.storeTotal || 0) + (a.last.online || 0)));
+    if (rows.length) grid.append(hfig({ title: '교보 재고', note: '매장 합계와 온라인(물류) 재고. 매장 재고가 줄어든 책은 판매 추정을 표시합니다.', rows, unit: '권',
+      legend: [{ name: '매장', color: 'var(--s1)', rect: true }, { name: '온라인', color: 'var(--s4)', rect: true }],
+      series: [{ name: '매장', color: 'var(--s1)', values: rows.map(r => r.last.storeTotal || 0) }, { name: '온라인', color: 'var(--s4)', values: rows.map(r => r.last.online || 0) }],
+      extras: rows.map(r => r.sold > 0 ? { text: `판매 추정 ${r.sold}권`, color: 'var(--good)' } : null) }));
+    rows = rowsData.filter(r => r.last.kRank != null).sort((a, b) => a.last.kRank - b.last.kRank);
+    if (rows.length) {
+      const rk = rows, maxR = Math.max(...rk.map(r => r.last.kRank)), top = maxR + Math.ceil(maxR * 0.1) + 1;
+      grid.append(hfig({ title: '교보 주간베스트 순위', note: '분야 순위. 막대가 길수록 상위.' + missing(N - rk.length, '순위권 밖'), rows: rk,
+        series: [{ name: '순위', color: 'var(--s1)', values: rk.map(r => top - r.last.kRank) }],
+        valueText: i => `${fmt(rk[i].last.kRank)}위 · ${rk[i].last.kRankLabel || ''}`, extras: rk.map(r => ex(r.dRank, { rank: true })),
+        tableRows: rows.map(r => [r.bm.book.title, `${fmt(r.last.kRank)}위 (${r.last.kRankLabel || ''})`]) }));
+    }
+    rows = byVal(l => l.likes);
+    if (rows.length) grid.append(hfig({ title: '교보 찜', note: '교보문고 상품 페이지의 찜 수. 값 옆은 전일 대비 변화.', rows,
+      series: [{ name: '찜', color: 'var(--s1)', values: rows.map(r => r.last.likes) }], extras: rows.map(r => ex(r.dLikes)) }));
+    rows = rowsData.filter(r => r.last.reviews != null).sort((a, b) => b.last.reviews - a.last.reviews);
+    if (rows.length) grid.append(hfig({ title: '리뷰 수', note: '세 사이트 합계. 값 옆은 전일 대비 새 리뷰.', rows, unit: '건',
+      legend: SRC_KEYS.map(k => ({ name: SRC[k].name, color: SRC[k].color, rect: true })),
+      series: [{ name: '교보', color: SRC.kyobo.color, values: rows.map(r => r.last.kReviews || 0) },
+               { name: '예스24', color: SRC.yes24.color, values: rows.map(r => r.last.yReviews || 0) },
+               { name: '알라딘', color: SRC.aladin.color, values: rows.map(r => r.last.aReviews || 0) }],
+      extras: rows.map(r => ex(r.dRev)) }));
+
+    // 매장 × 도서 히트맵
+    const meta = state.stores;
+    const areaOrder = { '서울': 0, '경기/인천': 1, '지방': 2 };
+    const codes = [...new Set(rowsData.flatMap(r => Object.keys(r.last.stores || {})))]
+      .map(c => ({ code: c, label: meta[c] ? meta[c].name : c, area: meta[c] ? meta[c].area : '' }))
+      .sort((a, b) => ((areaOrder[a.area] ?? 9) - (areaOrder[b.area] ?? 9)) || a.label.localeCompare(b.label, 'ko'));
+    const hrows = rowsData.filter(r => r.last.stores).sort((a, b) => (b.last.storeTotal || 0) - (a.last.storeTotal || 0));
+    if (hrows.length && codes.length) {
+      const card = figure({ title: '매장별 재고 분포', note: '행은 도서, 열은 교보문고 매장(서울 · 경기/인천 · 지방 순). 진할수록 재고가 많고 빈 칸은 0권.',
+        draw: host => drawHeat(host, 0, { rows: hrows.map(r => ({ label: r.bm.book.title, link: link(r) })), cols: codes, values: hrows.map(r => codes.map(c => r.last.stores[c.code] ?? null)) }),
+        table: () => ({ columns: ['도서', ...codes.map(c => c.label)], rows: hrows.map(r => [r.bm.book.title, ...codes.map(c => r.last.stores[c.code] ?? '')]) }) });
+      card.classList.add('wide'); grid.append(card);
+    }
+
+    // 전체 합계 추이
+    const keys = [...new Set(all.flatMap(bm => windowDays(bm.days).map(d => d.key)))].sort();
+    if (keys.length) {
+      const xs = keys.map(dayMs);
+      const dayOf = (bm, k) => bm.days.find(x => x.key === k);
+      const sum = f => keys.map(k => { let t = 0, any = false; for (const bm of all) { const d = dayOf(bm, k); const v = d ? f(d) : null; if (v != null) { t += v; any = true; } } return any ? t : null; });
+      const soldDaily = keys.map(k => all.reduce((a, bm) => { const d = dayOf(bm, k); return a + (d && d.sold ? d.sold : 0); }, 0));
+      const lineFig = (title, note, series, opts = {}) => figure({ title, note, height: 190,
+        legend: series.length > 1 ? series.map(sr => ({ name: sr.name, color: sr.color })) : null,
+        draw: (host, hh) => drawLine(host, hh, { xs, series, ...opts }),
+        table: () => ({ columns: ['날짜', ...series.map(sr => sr.name)], rows: keys.map((k, i) => [k, ...series.map(sr => fmt(sr.values[i], opts.unit || ''))]) }) });
+      grid.append(lineFig('예스24 판매지수 합계 추이', '전 도서 합계. 판매 중단 도서는 제외.', [{ name: '판매지수 합계', color: 'var(--s2)', values: sum(d => d.salesIndex) }]));
+      grid.append(lineFig('알라딘 Sales Point 합계 추이', '전 도서 합계.', [{ name: 'Sales Point 합계', color: 'var(--s3)', values: sum(d => d.salesPoint) }]));
+      grid.append(lineFig('교보 재고 합계 추이', '전 도서의 매장 재고와 온라인 재고 합계.', [{ name: '매장', color: 'var(--s1)', values: sum(d => d.storeTotal) }, { name: '온라인', color: 'var(--s4)', values: sum(d => d.online) }], { zero: true, unit: '권' }));
+      grid.append(figure({ title: '매장 판매 추정(일별)', note: '전 도서의 매장 재고 감소분 합계.', height: 190,
+        draw: (host, hh) => drawBars(host, hh, { cats: keys.map(md), series: [{ name: '판매 추정', color: 'var(--s1)', values: soldDaily }], unit: '권', capLabels: true }),
+        table: () => ({ columns: ['날짜', '판매 추정'], rows: keys.map((k, i) => [k, fmt(soldDaily[i], '권')]) }) }));
+    }
+    view.append(h('section', {}, h('h2', { class: 'sec-title' }, '전체 현황', h('small', { text: `${all.length}권 · 최신 수집 기준 · 추이는 ${state.range ? '최근 ' + state.range + '일' : '전체 기간'}` })), grid));
+  }
+
+  /* 주요 도서: 선택한 책마다 핵심 수치와 소형 추이 차트 */
+  function renderFocus(view, rowsData) {
+    const sel = rowsData.filter(r => state.selected.has(r.bm.book.id));
+    const sec = h('section', {}, h('h2', { class: 'sec-title' }, '주요 도서',
+      h('small', { text: sel.length ? `${sel.length}권 · 상단 "주요 도서" 버튼에서 선택하며 브라우저에 저장됩니다` : '상단 "주요 도서" 버튼에서 책을 고르면 여기에 상세 카드가 표시됩니다' })));
+    if (!sel.length) sec.append(h('div', { class: 'card' }, h('div', { class: 'empty', text: '선택한 주요 도서가 없습니다.' })));
+    sel.forEach(r => sec.append(focusCard(r)));
+    view.append(sec);
+  }
+  function focusCard(r) {
+    const bm = r.bm, b = bm.book, l = r.last, ym = bm.yes24Missing;
+    const win = windowDays(bm.days), xs = win.map(d => d.ms);
+    const st = (k, v, d) => h('div', { class: 'st' }, h('div', { class: 'k', text: k }), h('div', { class: 'v', text: v }), d || null);
+    const stats = h('div', { class: 'stats' },
+      st('예스24 판매지수', yes24Text(bm, l, l.salesIndex), ym ? null : deltaNode(r.dSales, {}, '전일')),
+      st('알라딘 Sales Point', l.salesPoint == null ? '없음' : fmt(l.salesPoint), deltaNode(r.dSP, {}, '전일')),
+      st('교보 순위', rankText(l), r.dRank != null ? deltaNode(r.dRank, { rank: true }) : (l.kRankLabel ? h('span', { class: 'sub muted', text: l.kRankLabel }) : null)),
+      st('매장 재고', l.storeTotal == null ? '없음' : fmt(l.storeTotal, '권'), deltaNode(r.dStore, { unit: '권', neutral: true }, '전일')),
+      st('매장 판매 추정', fmt(l.cumSold || 0, '권'), h('span', { class: 'sub ' + (r.sold ? 'up' : 'muted'), text: r.sold ? `오늘 +${r.sold}권` : '누적' })),
+      st('온라인 재고', l.online == null ? '없음' : fmt(l.online, '권'), deltaNode(r.dOnline, { unit: '권', neutral: true }, '전일')),
+      st('교보 찜', l.likes == null ? '없음' : fmt(l.likes), deltaNode(r.dLikes, {}, '전일')),
+      st('리뷰', l.reviews == null ? '없음' : fmt(l.reviews, '건'), deltaNode(r.dRev, { unit: '건' }, '전일')));
+    const mini = (title, opts) => {
+      const host = h('div', { class: 'fig' });
+      const wrap = h('div', { class: 'mini-fig' }, h('h3', { text: title }), host);
+      mountChart(host, hh => drawLine(hh, 150, { xs, ...opts }));
+      return wrap;
+    };
+    const minis = h('div', { class: 'mini' },
+      ym ? null : mini('예스24 판매지수', { series: [{ name: '판매지수', color: 'var(--s2)', values: win.map(d => d.salesIndex) }], emptyText: '데이터 없음' }),
+      mini('알라딘 Sales Point', { series: [{ name: 'Sales Point', color: 'var(--s3)', values: win.map(d => d.salesPoint) }], emptyText: '데이터 없음' }),
+      mini('교보 재고(매장·온라인)', { series: [{ name: '매장', color: 'var(--s1)', values: win.map(d => d.storeTotal) }, { name: '온라인', color: 'var(--s4)', values: win.map(d => d.online) }], zero: true, unit: '권' }),
+      mini('교보 주간베스트 순위', { series: [{ name: '순위', color: 'var(--s1)', values: win.map(d => d.kRank) }], reverse: true, unit: '위', emptyText: '순위권 밖' }),
+      mini('교보 찜', { series: [{ name: '찜', color: 'var(--s1)', values: win.map(d => d.likes) }], zero: true }));
+    return h('div', { class: 'card focus' },
+      h('div', { class: 'head' },
+        h('div', {}, h('h2', {}, h('a', { href: '#' + encodeURIComponent(b.id), text: b.title }), flagBadges({ soldout: l.flags.soldout, mdChoice: l.flags.mdChoice })),
+          h('div', { class: 'note', text: `${b.publisher || ''} · ${b.pubDate || ''} 출간${l.status && l.status !== '판매중' ? ' · ' + l.status : ''}` })),
+        h('a', { class: 'btn small', href: '#' + encodeURIComponent(b.id), text: '상세 보기' })),
+      stats, minis);
   }
 
   /* ======================================================================
@@ -1215,7 +1431,7 @@
   // 상세 화면의 "다른 책" 목록: 선택된 책(+ 현재 책)만
   function renderJump(id) {
     const sel = $('#jumpSel'); sel.replaceChildren();
-    const list = state.books.filter(b => state.selected.has(b.id) || b.id === id);
+    const list = state.books;
     for (const b of list) { const o = h('option', { value: b.id, text: b.title }); if (b.id === id) o.selected = true; sel.append(o); }
   }
   $('#jumpSel').addEventListener('change', e => { location.hash = '#' + encodeURIComponent(e.target.value); });
