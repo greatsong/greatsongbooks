@@ -172,6 +172,7 @@
   /* ---------- 차트 ---------- */
   .fig { position: relative; }
   .fig svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .fig svg.fixed { width: auto; height: auto; max-width: none; }
   .fig svg:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; border-radius: 4px; }
   .fig text { font-size: 11px; fill: var(--muted); font-family: inherit; }
   .fig .grid-line { stroke: var(--grid); stroke-width: 1; }
@@ -672,7 +673,7 @@
     const cw = 20, ch = 20, gap = 2, lw = 200, th = 76, sw = 62;
     const sx0 = lw + cols.length * (cw + gap) + 14;
     const W = sx0 + summary.length * sw + 8, H = th + rows.length * (ch + gap) + 6;
-    const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', 'aria-label': label });
+    const svg = s('svg', { class: 'fixed', viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', 'aria-label': label });
     const maxV = Math.max(1, ...values.flat().filter(v => v != null && v > 0));
     const binAbs = v => v <= 0 ? 'var(--chip)' : v === 1 ? 'var(--p1)' : v === 2 ? 'var(--p2)' : v <= 4 ? 'var(--p3)' : v <= 9 ? 'var(--p4)' : 'var(--p5)';
     const binRel = v => { if (v <= 0) return 'var(--chip)'; const f = v / maxV; return f <= 0.2 ? 'var(--p1)' : f <= 0.4 ? 'var(--p2)' : f <= 0.6 ? 'var(--p3)' : f <= 0.8 ? 'var(--p4)' : 'var(--p5)'; };
@@ -1190,12 +1191,13 @@
         });
       };
       const flowTable = () => { const rf = flowRows(), mt = METRICS[metric]; return { columns: ['도서', ...fkeys.map(md), '최근 7일', '판매일'], rows: rf.map(x => [x.bm.book.title, ...x.vals.map(v => v == null ? '' : fmt(v, mt.unit)), fmt(x.last7, mt.unit), x.n ? `${x.days}/${x.n}` : '']) }; };
-      const flowCard = figure({ title: '판매 흐름', note: METRICS.sold.note, draw: flowDraw, table: flowTable });
+      const fewDays = fkeys.length < 2 ? ' 첫날에는 비교할 전날이 없어 비어 있으며, 다음 수집부터 채워집니다.' : '';
+      const flowCard = figure({ title: '판매 흐름', note: METRICS.sold.note + fewDays, draw: flowDraw, table: flowTable });
       flowCard.classList.add('wide');
       const metricSel = h('select', { class: 'sel', 'aria-label': '판매 흐름 지표' }, ...Object.entries(METRICS).map(([k, v]) => h('option', { value: k, text: v.name })));
       metricSel.addEventListener('change', () => {
         metric = metricSel.value;
-        flowCard.querySelector('.note').textContent = METRICS[metric].note;
+        flowCard.querySelector('.note').textContent = METRICS[metric].note + fewDays;
         const body = flowCard.querySelector('.fig'); if (body._draw) body._draw();
         const tv = flowCard.querySelector('.tv'); tv.replaceChildren(); if (!tv.classList.contains('hidden')) tv.append(dataTable(flowTable()));
       });
