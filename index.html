@@ -366,7 +366,7 @@
         r.color ? h('span', { class: 'key' + (r.rect ? ' rect' : ''), style: `background:${r.color}` }) : null,
         h('span', { class: 'v', text: r.value }),
         h('span', { class: 'n', text: r.name }))),
-      foot ? h('div', { class: 'tf', text: foot }) : null);
+      ...(foot ? [h('div', { class: 'tf', text: foot })] : []));
     tip.hidden = false;
     const w = tip.offsetWidth, hh = tip.offsetHeight;
     let left = x + 14, top = y + 14;
@@ -1388,7 +1388,7 @@
       });
       countEl.textContent = `${fmt(rows.length)}건 중 ${fmt(Math.min(shown, rows.length))}건 표시`;
       listEl.replaceChildren(...rows.slice(0, shown).map(reviewCard));
-      moreRow.replaceChildren(rows.length > shown ? h('button', { class: 'btn', type: 'button', text: `더 보기 (${fmt(rows.length - shown)}건 남음)`, onclick: () => { shown += 20; build(false); } }) : null);
+      moreRow.replaceChildren(...(rows.length > shown ? [h('button', { class: 'btn', type: 'button', text: `더 보기 (${fmt(rows.length - shown)}건 남음)`, onclick: () => { shown += 20; build(false); } })] : []));
     };
     sortSel.addEventListener('change', () => build(true)); srcSel.addEventListener('change', () => build(true));
     build(true);
