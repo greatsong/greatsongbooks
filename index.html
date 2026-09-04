@@ -87,6 +87,14 @@
   #jumpLabel { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; }
   #jumpSel { max-width: min(360px, 60vw); min-width: 0; }
   .picker { margin: 0 0 18px; }
+  header.top .collect { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .cp-body p { margin: 0 0 8px; font-size: 13px; line-height: 1.55; }
+  .cp-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .cp-row input.sel { min-width: 260px; flex: 1 1 260px; font-family: ui-monospace, Menlo, monospace; }
+  #collectLog { font-size: 13px; white-space: pre-line; }
+  #collectStatus.busy::before { content: ''; display: inline-block; width: 10px; height: 10px; border: 2px solid var(--s1); border-right-color: transparent; border-radius: 50%; margin-right: 6px; vertical-align: -1px; animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (max-width: 720px) { header.top .collect { align-items: flex-start; } }
   .picker .ph { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-bottom: 8px; font-size: 13px; color: var(--ink-2); }
   .picker .pl { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 4px 16px; }
   .picker label { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; padding: 3px 0; cursor: pointer; }
@@ -247,8 +255,31 @@
       <h1><a href="#" id="homeLink">책 순위·재고 대시보드</a></h1>
       <div class="meta" id="meta">불러오는 중</div>
     </div>
-    <div class="meta">교보문고·예스24·알라딘 매일 07:00(KST) 수집</div>
+    <div class="collect">
+      <div class="meta">교보문고·예스24·알라딘 매일 07:00(KST) 수집</div>
+      <button type="button" class="btn" id="collectBtn" aria-expanded="false" aria-controls="collectPanel">수동 수집</button>
+      <span class="meta" id="collectStatus" aria-live="polite"></span>
+    </div>
   </header>
+  <div class="card picker hidden" id="collectPanel">
+    <div class="ph"><b>수동 수집</b><span class="muted">GitHub Actions의 수집 워크플로를 지금 실행합니다. 수집에 약 1분, 페이지 반영에 1~2분이 더 걸립니다.</span></div>
+    <div class="cp-body">
+      <p class="muted">이 페이지는 정적 사이트라서 실행 권한이 담긴 GitHub 토큰이 필요합니다. 토큰은 이 브라우저에만 저장되며 GitHub API 호출에만 사용됩니다.
+        <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Fine-grained 토큰 만들기</a>
+        (Repository access: greatsong/greatsongbooks만 선택, Permissions → Actions: Read and write).</p>
+      <div class="cp-row">
+        <input type="password" class="sel" id="ghToken" placeholder="github_pat_…" autocomplete="off" spellcheck="false" aria-label="GitHub 토큰">
+        <button type="button" class="btn small" id="tokenSave">저장</button>
+        <button type="button" class="btn small" id="tokenClear">삭제</button>
+        <span class="muted" id="tokenState"></span>
+      </div>
+      <div class="cp-row">
+        <button type="button" class="btn" id="runCollect">지금 수집 실행</button>
+        <a class="btn" href="https://github.com/greatsong/greatsongbooks/actions/workflows/collect.yml" target="_blank" rel="noopener">Actions 페이지에서 직접 실행</a>
+      </div>
+      <div class="muted" id="collectLog"></div>
+    </div>
+  </div>
   <p class="notice">누적 판매 부수는 세 사이트 모두 제공하지 않습니다. 예스24 판매지수, 알라딘 Sales Point, 교보 주간베스트 순위, 교보 매장 재고 감소분(오프라인 판매 추정)으로 판매 흐름을 추정합니다.</p>
 
   <div class="filters" id="filters">
@@ -636,16 +667,23 @@
   }
 
   /** 히트맵: rows [{label, link}], cols [{code,label,area}], values[r][c] (null = 데이터 없음). 순차 램프 한 색. */
-  function drawHeat(host, _height, { rows, cols, values }) {
+  function drawHeat(host, _height, { rows, cols, values, unit = '권', scale = 'abs', summary = [], cellText, label = '히트맵' }) {
     host.replaceChildren();
-    const cw = 20, ch = 20, gap = 2, lw = 200, th = 76;
-    const W = lw + cols.length * (cw + gap) + 8, H = th + rows.length * (ch + gap) + 6;
-    const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', 'aria-label': '도서별 매장 재고 히트맵' });
-    const bin = v => v <= 0 ? 'var(--chip)' : v === 1 ? 'var(--p1)' : v === 2 ? 'var(--p2)' : v <= 4 ? 'var(--p3)' : v <= 9 ? 'var(--p4)' : 'var(--p5)';
+    const cw = 20, ch = 20, gap = 2, lw = 200, th = 76, sw = 62;
+    const sx0 = lw + cols.length * (cw + gap) + 14;
+    const W = sx0 + summary.length * sw + 8, H = th + rows.length * (ch + gap) + 6;
+    const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', 'aria-label': label });
+    const maxV = Math.max(1, ...values.flat().filter(v => v != null && v > 0));
+    const binAbs = v => v <= 0 ? 'var(--chip)' : v === 1 ? 'var(--p1)' : v === 2 ? 'var(--p2)' : v <= 4 ? 'var(--p3)' : v <= 9 ? 'var(--p4)' : 'var(--p5)';
+    const binRel = v => { if (v <= 0) return 'var(--chip)'; const f = v / maxV; return f <= 0.2 ? 'var(--p1)' : f <= 0.4 ? 'var(--p2)' : f <= 0.6 ? 'var(--p3)' : f <= 0.8 ? 'var(--p4)' : 'var(--p5)'; };
+    const bin = scale === 'rel' ? binRel : binAbs;
+    const strong = v => scale === 'rel' ? v / maxV > 0.4 : v >= 3;
+    const show = cellText || (v => (v > 0 && String(v).length <= 2 ? String(v) : ''));
+    summary.forEach((sm, k) => svg.append(s('text', { x: sx0 + k * sw + sw - 6, y: th - 8, 'text-anchor': 'end', fill: 'var(--ink-2)' }, sm.label)));
     let prevArea = null;
     cols.forEach((c, j) => {
       const x = lw + j * (cw + gap) + cw / 2;
-      svg.append(s('text', { x, y: th - 8, transform: `rotate(-60 ${x} ${th - 8})`, fill: 'var(--ink-2)' }, c.label));
+      svg.append(s('text', { x, y: th - 8, transform: `rotate(-60 ${x} ${th - 8})`, fill: c.strong ? 'var(--ink)' : 'var(--ink-2)' }, c.label));
       if (prevArea !== null && c.area !== prevArea) { const lx = lw + j * (cw + gap) - gap / 2; svg.append(s('line', { class: 'base-line', x1: lx, x2: lx, y1: th - 4, y2: H - 4 })); }
       prevArea = c.area;
     });
@@ -658,10 +696,15 @@
         const v = values[i][j], x = lw + j * (cw + gap);
         const g = s('g');
         g.append(s('rect', { x, y, width: cw, height: ch, rx: 3, fill: v == null ? 'transparent' : bin(v), stroke: v == null ? 'var(--grid)' : 'none' }));
-        if (v > 0) g.append(s('text', { x: x + cw / 2, y: y + ch / 2 + 4, 'text-anchor': 'middle', fill: v >= 3 ? '#fff' : 'var(--ink)' }, v));
-        g.addEventListener('pointermove', e => showTip(e.clientX, e.clientY, r.label, [{ name: `${c.label} (${c.area})`, value: v == null ? '없음' : fmt(v, '권') }]));
+        const txt = v == null ? '' : show(v);
+        if (txt) g.append(s('text', { x: x + cw / 2, y: y + ch / 2 + 4, 'text-anchor': 'middle', fill: strong(v) ? '#fff' : 'var(--ink)' }, txt));
+        g.addEventListener('pointermove', e => showTip(e.clientX, e.clientY, r.label, [{ name: c.area ? `${c.label} (${c.area})` : (c.full || c.label), value: v == null ? '없음' : (scale === 'rel' ? signed(v, unit) : fmt(v, unit)) }]));
         g.addEventListener('pointerleave', hideTip);
         svg.append(g);
+      });
+      summary.forEach((sm, k) => {
+        const val = sm.values[i];
+        svg.append(s('text', { x: sx0 + k * sw + sw - 6, y: y + ch / 2 + 4, 'text-anchor': 'end', fill: val && sm.good ? 'var(--good)' : 'var(--ink)', 'font-weight': val && sm.good ? 600 : 400 }, val == null ? '–' : sm.format ? sm.format(val) : String(val)));
       });
     });
     host.append(svg);
@@ -1099,6 +1142,66 @@
       grid.append(lineFig('예스24 판매지수 합계 추이', '전 도서 합계. 판매 중단 도서는 제외.', [{ name: '판매지수 합계', color: 'var(--s2)', values: sum(d => d.salesIndex) }]));
       grid.append(lineFig('알라딘 Sales Point 합계 추이', '전 도서 합계.', [{ name: 'Sales Point 합계', color: 'var(--s3)', values: sum(d => d.salesPoint) }]));
       grid.append(lineFig('교보 재고 합계 추이', '전 도서의 매장 재고와 온라인 재고 합계.', [{ name: '매장', color: 'var(--s1)', values: sum(d => d.storeTotal) }, { name: '온라인', color: 'var(--s4)', values: sum(d => d.online) }], { zero: true, unit: '권' }));
+      // 판매 흐름: 도서 × 날짜 (최근 90일까지)
+      const fkeys = keys.slice(-90);
+      const flowOf = bm => {
+        const m = new Map();
+        bm.days.forEach((d, i) => {
+          const pv = i > 0 ? bm.days[i - 1] : null;
+          m.set(d.key, {
+            sold: pv ? (d.sold || 0) : null,
+            dSales: pv && pv.salesIndex != null && d.salesIndex != null ? d.salesIndex - pv.salesIndex : null,
+            dSP: pv && pv.salesPoint != null && d.salesPoint != null ? d.salesPoint - pv.salesPoint : null,
+          });
+        });
+        return m;
+      };
+      const flows = new Map(all.map(bm => [bm.book.id, flowOf(bm)]));
+      const METRICS = {
+        sold: { name: '매장 판매 추정', note: '날짜마다 교보 매장 재고가 줄어든 권수. 색이 이어지면 꾸준히 팔리는 책입니다.', unit: '권', scale: 'abs' },
+        dSales: { name: '예스24 판매지수 증감', note: '전날 대비 판매지수 변화. 지수가 계속 오르면 온라인에서 꾸준히 팔리는 책입니다.', unit: '', scale: 'rel' },
+        dSP: { name: '알라딘 Sales Point 증감', note: '전날 대비 Sales Point 변화.', unit: '', scale: 'rel' },
+      };
+      let metric = 'sold';
+      const flowRows = () => {
+        const f = metric;
+        const rowsF = all.map(bm => {
+          const fl = flows.get(bm.book.id);
+          const vals = fkeys.map(k => { const x = fl.get(k); return x ? x[f] : null; });
+          const pos = vals.filter(v => v != null && v > 0);
+          const last7 = vals.slice(-7).reduce((a, v) => a + (v > 0 ? v : 0), 0);
+          const total = vals.reduce((a, v) => a + (v > 0 ? v : 0), 0);
+          return { bm, vals, days: pos.length, n: vals.filter(v => v != null).length, last7, total };
+        }).sort((a, b) => b.last7 - a.last7 || b.days - a.days || b.total - a.total || a.bm.book.title.localeCompare(b.bm.book.title, 'ko'));
+        return rowsF;
+      };
+      const flowDraw = host => {
+        const rf = flowRows(), mt = METRICS[metric];
+        drawHeat(host, 0, {
+          label: `${mt.name} 판매 흐름 히트맵`, unit: mt.unit, scale: mt.scale,
+          rows: rf.map(x => ({ label: x.bm.book.title, link: '#' + encodeURIComponent(x.bm.book.id) })),
+          cols: fkeys.map(k => ({ label: md(k), full: longDate(k), strong: new Date(dayMs(k)).getUTCDay() === 1 })),
+          values: rf.map(x => x.vals),
+          cellText: mt.scale === 'abs' ? undefined : (v => (v > 0 && String(v).length <= 2 ? String(v) : '')),
+          summary: [
+            { label: '7일', values: rf.map(x => x.last7), good: true, format: v => mt.scale === 'abs' ? fmt(v, mt.unit) : '+' + fmt(v) },
+            { label: '판매일', values: rf.map(x => x.n ? `${x.days}/${x.n}` : null) },
+          ],
+        });
+      };
+      const flowTable = () => { const rf = flowRows(), mt = METRICS[metric]; return { columns: ['도서', ...fkeys.map(md), '최근 7일', '판매일'], rows: rf.map(x => [x.bm.book.title, ...x.vals.map(v => v == null ? '' : fmt(v, mt.unit)), fmt(x.last7, mt.unit), x.n ? `${x.days}/${x.n}` : '']) }; };
+      const flowCard = figure({ title: '판매 흐름', note: METRICS.sold.note, draw: flowDraw, table: flowTable });
+      flowCard.classList.add('wide');
+      const metricSel = h('select', { class: 'sel', 'aria-label': '판매 흐름 지표' }, ...Object.entries(METRICS).map(([k, v]) => h('option', { value: k, text: v.name })));
+      metricSel.addEventListener('change', () => {
+        metric = metricSel.value;
+        flowCard.querySelector('.note').textContent = METRICS[metric].note;
+        const body = flowCard.querySelector('.fig'); if (body._draw) body._draw();
+        const tv = flowCard.querySelector('.tv'); tv.replaceChildren(); if (!tv.classList.contains('hidden')) tv.append(dataTable(flowTable()));
+      });
+      flowCard.querySelector('.head').insertBefore(metricSel, flowCard.querySelector('.head').lastElementChild);
+      grid.prepend(flowCard);
+
       grid.append(figure({ title: '매장 판매 추정(일별)', note: '전 도서의 매장 재고 감소분 합계.', height: 190,
         draw: (host, hh) => drawBars(host, hh, { cats: keys.map(md), series: [{ name: '판매 추정', color: 'var(--s1)', values: soldDaily }], unit: '권', capLabels: true }),
         table: () => ({ columns: ['날짜', '판매 추정'], rows: keys.map((k, i) => [k, fmt(soldDaily[i], '권')]) }) }));
@@ -1128,13 +1231,23 @@
       st('온라인 재고', l.online == null ? '없음' : fmt(l.online, '권'), deltaNode(r.dOnline, { unit: '권', neutral: true }, '전일')),
       st('교보 찜', l.likes == null ? '없음' : fmt(l.likes), deltaNode(r.dLikes, {}, '전일')),
       st('리뷰', l.reviews == null ? '없음' : fmt(l.reviews, '건'), deltaNode(r.dRev, { unit: '건' }, '전일')));
+    const soldDays = win.slice(1).map(d => d.sold || 0);
+    const soldDayCount = soldDays.filter(v => v > 0).length, sold7 = soldDays.slice(-7).reduce((a, v) => a + v, 0);
+    if (soldDays.length) stats.append(st('판매 흐름', `${soldDayCount}/${soldDays.length}일`, h('span', { class: 'sub ' + (sold7 ? 'up' : 'muted'), text: `매장 판매일 · 최근 7일 ${fmt(sold7, '권')}` })));
     const mini = (title, opts) => {
       const host = h('div', { class: 'fig' });
       const wrap = h('div', { class: 'mini-fig' }, h('h3', { text: title }), host);
       mountChart(host, hh => drawLine(hh, 150, { xs, ...opts }));
       return wrap;
     };
+    const miniBar = (title, cats, values, unit) => {
+      const host = h('div', { class: 'fig' });
+      const wrap = h('div', { class: 'mini-fig' }, h('h3', { text: title }), host);
+      mountChart(host, hh => drawBars(hh, 150, { cats, series: [{ name: title, color: 'var(--s1)', values }], unit, capLabels: values.length <= 31 }));
+      return wrap;
+    };
     const minis = h('div', { class: 'mini' },
+      win.length > 1 ? miniBar('일별 매장 판매 추정', win.slice(1).map(d => md(d.key)), soldDays, '권') : null,
       ym ? null : mini('예스24 판매지수', { series: [{ name: '판매지수', color: 'var(--s2)', values: win.map(d => d.salesIndex) }], emptyText: '데이터 없음' }),
       mini('알라딘 Sales Point', { series: [{ name: 'Sales Point', color: 'var(--s3)', values: win.map(d => d.salesPoint) }], emptyText: '데이터 없음' }),
       mini('교보 재고(매장·온라인)', { series: [{ name: '매장', color: 'var(--s1)', values: win.map(d => d.storeTotal) }, { name: '온라인', color: 'var(--s4)', values: win.map(d => d.online) }], zero: true, unit: '권' }),
@@ -1455,6 +1568,98 @@
   });
   window.addEventListener('hashchange', () => { route(); window.scrollTo(0, 0); });
   window.addEventListener('scroll', hideTip, { passive: true });
+
+  /* ======================================================================
+   * 수동 수집: GitHub Actions workflow_dispatch 호출 → 실행 상태 확인 → 데이터 갱신 시 새로고침
+   * ==================================================================== */
+  (function manualCollect() {
+    const REPO = 'greatsong/greatsongbooks', WORKFLOW = 'collect.yml', LS_TOKEN = 'gsb.ghToken';
+    const API = `https://api.github.com/repos/${REPO}`;
+    const panel = $('#collectPanel'), btn = $('#collectBtn'), status = $('#collectStatus'), log = $('#collectLog');
+    const tokenInput = $('#ghToken'), tokenState = $('#tokenState'), runBtn = $('#runCollect');
+    const getToken = () => { try { return localStorage.getItem(LS_TOKEN) || ''; } catch { return ''; } };
+    const setToken = v => { try { v ? localStorage.setItem(LS_TOKEN, v) : localStorage.removeItem(LS_TOKEN); } catch { /* 저장 불가 */ } };
+    const showTokenState = () => { const t = getToken(); tokenState.textContent = t ? `저장된 토큰 있음 (…${t.slice(-4)})` : '저장된 토큰 없음'; runBtn.disabled = !t; };
+    const say = (msg, busy = false) => { status.textContent = msg; status.classList.toggle('busy', busy); };
+    const logLine = msg => { log.textContent = (log.textContent ? log.textContent + '\n' : '') + `${new Date().toTimeString().slice(0, 8)} ${msg}`; };
+    const gh = (path, opts = {}) => fetch(API + path, { ...opts, headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${getToken()}`, 'X-GitHub-Api-Version': '2022-11-28', ...(opts.headers || {}) } });
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    btn.addEventListener('click', () => {
+      const open = panel.classList.toggle('hidden');
+      btn.setAttribute('aria-expanded', String(!open));
+      if (!open) { showTokenState(); tokenInput.focus(); }
+    });
+    $('#tokenSave').addEventListener('click', () => {
+      const v = tokenInput.value.trim();
+      if (!v) { tokenState.textContent = '토큰을 입력하십시오.'; return; }
+      setToken(v); tokenInput.value = ''; showTokenState();
+    });
+    $('#tokenClear').addEventListener('click', () => { setToken(''); showTokenState(); });
+
+    let running = false;
+    runBtn.addEventListener('click', async () => {
+      if (running) return;
+      const token = getToken();
+      if (!token) { tokenState.textContent = '먼저 토큰을 저장하십시오.'; return; }
+      running = true; runBtn.disabled = true; log.textContent = '';
+      const before = state.lastT;
+      try {
+        say('실행 요청 중', true);
+        const res = await gh(`/actions/workflows/${WORKFLOW}/dispatches`, { method: 'POST', body: JSON.stringify({ ref: 'main' }) });
+        if (res.status === 401 || res.status === 403) throw new Error(`토큰이 거부되었습니다 (HTTP ${res.status}). 토큰의 저장소 접근 범위와 Actions 쓰기 권한을 확인하십시오.`);
+        if (res.status === 404) throw new Error('워크플로를 찾지 못했습니다 (HTTP 404). 토큰에 저장소 접근 권한이 없을 때도 404가 납니다.');
+        if (!res.ok) throw new Error(`실행 요청 실패 (HTTP ${res.status})`);
+        logLine('워크플로 실행을 요청했습니다.');
+        // 실행이 등록될 때까지 기다린 뒤 상태를 추적한다.
+        say('수집 실행 대기', true);
+        const started = Date.now();
+        let run = null;
+        for (let i = 0; i < 20 && !run; i++) {
+          await sleep(4000);
+          const r = await gh(`/actions/workflows/${WORKFLOW}/runs?event=workflow_dispatch&per_page=1`);
+          if (!r.ok) continue;
+          const j = await r.json();
+          const cand = j.workflow_runs && j.workflow_runs[0];
+          if (cand && Date.parse(cand.created_at) >= started - 90000) run = cand;
+        }
+        if (!run) throw new Error('실행이 등록되지 않았습니다. Actions 페이지에서 확인하십시오.');
+        logLine(`실행 #${run.run_number} 시작: ${run.html_url}`);
+        let done = false;
+        for (let i = 0; i < 60 && !done; i++) {
+          say(`수집 중 (${Math.round((Date.now() - started) / 1000)}초)`, true);
+          await sleep(10000);
+          const r = await gh(`/actions/runs/${run.id}`);
+          if (!r.ok) continue;
+          const j = await r.json();
+          if (j.status === 'completed') {
+            done = true;
+            if (j.conclusion !== 'success') throw new Error(`수집이 실패했습니다 (${j.conclusion}). 로그: ${run.html_url}`);
+            logLine('수집이 끝났습니다. 페이지 반영을 기다립니다.');
+          }
+        }
+        if (!done) throw new Error('수집이 10분 안에 끝나지 않았습니다. Actions 페이지에서 확인하십시오.');
+        // GitHub Pages 반영 확인: latest.json 의 수집 시각이 바뀌면 새로고침
+        for (let i = 0; i < 24; i++) {
+          say(`페이지 반영 대기 (${Math.round((Date.now() - started) / 1000)}초)`, true);
+          await sleep(10000);
+          try {
+            const j = await fetch(`data/latest.json?t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json());
+            const newest = Object.values(j).map(x => x.t).sort().pop();
+            if (newest && newest !== before) { logLine(`새 데이터 확인 (${newest.slice(0, 16)}). 새로고침합니다.`); say('완료'); await sleep(800); location.reload(); return; }
+          } catch { /* 다음 회차에 다시 확인 */ }
+        }
+        say('반영 대기 시간 초과');
+        logLine('수집은 끝났지만 페이지에 아직 반영되지 않았습니다. 잠시 후 새로고침하십시오.');
+      } catch (e) {
+        say('실패');
+        logLine(e && e.message ? e.message : String(e));
+      } finally {
+        running = false; showTokenState();
+      }
+    });
+    showTokenState();
+  })();
 
   loadAll().then(() => { renderMeta(); route(); }).catch(err => {
     $('#meta').textContent = '데이터를 불러오지 못했습니다.';

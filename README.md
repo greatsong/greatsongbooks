@@ -30,6 +30,10 @@ GitHub Pages 대시보드로 보여 준다. 서버 없이 GitHub Actions + 정�
 python3 discover.py 259610 송석리   # 예스24 저자 번호 → books.json 에 새 책 추가
 ```
 
+## 수동 수집
+
+대시보드 오른쪽 위 "수동 수집" 버튼으로 GitHub Actions 워크플로를 바로 실행할 수 있다. 정적 페이지라서 실행 권한이 담긴 GitHub fine-grained 토큰이 필요하다(Repository access: 이 저장소만, Permissions → Actions: Read and write). 토큰은 브라우저 localStorage(`gsb.ghToken`)에만 저장되고 GitHub API 호출에만 쓰인다. 토큰 없이도 Actions 페이지에서 "Run workflow"로 실행할 수 있다.
+
 ## 로컬 실행
 
 ```bash
