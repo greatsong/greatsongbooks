@@ -1,6 +1,6 @@
 {
  "ai-literacy-newspaper": {
-  "t": "2026-09-15T04:51:05+09:00",
+  "t": "2026-09-15T09:25:20+09:00",
   "book": "ai-literacy-newspaper",
   "kyobo": {
    "rank": [],
@@ -8,7 +8,7 @@
    "reviewScore": 10,
    "price": 17010,
    "status": "판매중",
-   "online": 80,
+   "online": 79,
    "likeCount": 2,
    "flags": {
     "mdChoice": false,
@@ -187,13 +187,13 @@
   },
   "aladin": {
    "itemId": "401134097",
-   "salesPoint": 630,
+   "salesPoint": 770,
    "reviewCount": 9,
    "commentCount": 0,
    "rank": [
     {
      "label": "책읽기/글쓰기 주간",
-     "rank": 16
+     "rank": 10
     }
    ]
   },
@@ -204,7 +204,7 @@
   }
  },
  "9791173576294": {
-  "t": "2026-09-15T04:51:05+09:00",
+  "t": "2026-09-15T09:25:20+09:00",
   "book": "9791173576294",
   "kyobo": {
    "rank": [],
@@ -391,7 +391,7 @@
   },
   "aladin": {
    "itemId": "399320263",
-   "salesPoint": 820,
+   "salesPoint": 760,
    "reviewCount": 27,
    "commentCount": 1,
    "rank": []
@@ -403,7 +403,7 @@
   }
  },
  "9791173576287": {
-  "t": "2026-09-15T04:51:05+09:00",
+  "t": "2026-09-15T09:25:20+09:00",
   "book": "9791173576287",
   "kyobo": {
    "rank": [],
@@ -590,7 +590,7 @@
   },
   "aladin": {
    "itemId": "391279953",
-   "salesPoint": 938,
+   "salesPoint": 929,
    "reviewCount": 22,
    "commentCount": 1,
    "rank": []
@@ -602,7 +602,7 @@
   }
  },
  "9791173576270": {
-  "t": "2026-09-15T04:51:05+09:00",
+  "t": "2026-09-15T09:25:20+09:00",
   "book": "9791173576270",
   "kyobo": {
    "rank": [],
@@ -795,7 +795,7 @@
   },
   "aladin": {
    "itemId": "379190660",
-   "salesPoint": 1376,
+   "salesPoint": 1334,
    "reviewCount": 17,
    "commentCount": 0,
    "rank": []
@@ -807,7 +807,7 @@
   }
  },
  "9791140715411": {
-  "t": "2026-09-15T04:51:05+09:00",
+  "t": "2026-09-15T09:25:20+09:00",
   "book": "9791140715411",
   "kyobo": {
    "rank": [
@@ -976,7 +976,13 @@
    "rank": [],
    "rankText": "베스트 IT 모바일 top100 5주"
   },
-  "aladinError": "TimeoutError: The read operation timed out",
+  "aladin": {
+   "itemId": "371134314",
+   "salesPoint": 1053,
+   "reviewCount": 0,
+   "commentCount": 1,
+   "rank": []
+  },
   "reviews": {
    "kyobo": 2,
    "yes24": 1,
@@ -984,7 +990,7 @@
   }
  },
  "9791194383222": {
-  "t": "2026-09-15T04:51:05+09:00",
+  "t": "2026-09-15T09:25:20+09:00",
   "book": "9791194383222",
   "kyobo": {
    "rank": [],
@@ -1169,7 +1175,13 @@
    "rank": [],
    "rankText": "베스트 IT 모바일 top100 10주"
   },
-  "aladinError": "TimeoutError: The read operation timed out",
+  "aladin": {
+   "itemId": "360262381",
+   "salesPoint": 1047,
+   "reviewCount": 6,
+   "commentCount": 2,
+   "rank": []
+  },
   "reviews": {
    "kyobo": 5,
    "yes24": 6,
@@ -1177,7 +1189,7 @@
   }
  },
  "9791163467830": {
-  "t": "2026-09-15T04:51:05+09:00",
+  "t": "2026-09-15T09:25:20+09:00",
   "book": "9791163467830",
   "kyobo": {
    "rank": [],
@@ -1341,7 +1353,13 @@
    "rank": [],
    "rankText": "베스트 사회 정치 top20 1주"
   },
-  "aladinError": "TimeoutError: The read operation timed out",
+  "aladin": {
+   "itemId": "360198605",
+   "salesPoint": 572,
+   "reviewCount": 0,
+   "commentCount": 3,
+   "rank": []
+  },
   "reviews": {
    "kyobo": 6,
    "yes24": 3,
@@ -1349,7 +1367,7 @@
   }
  },
  "9788925420196": {
-  "t": "2026-09-15T04:51:05+09:00",
+  "t": "2026-09-15T09:25:20+09:00",
   "book": "9788925420196",
   "kyobo": {
    "rank": [],
@@ -1515,7 +1533,7 @@
   },
   "aladin": {
    "itemId": "359876201",
-   "salesPoint": 482,
+   "salesPoint": 442,
    "reviewCount": 0,
    "commentCount": 0,
    "rank": []
@@ -1527,7 +1545,7 @@
   }
  },
  "9791140708277": {
-  "t": "2026-09-15T04:51:05+09:00",
+  "t": "2026-09-15T09:25:20+09:00",
   "book": "9791140708277",
   "kyobo": {
    "rank": [
@@ -1724,13 +1742,13 @@
   },
   "aladin": {
    "itemId": "334131360",
-   "salesPoint": 909,
+   "salesPoint": 859,
    "reviewCount": 12,
    "commentCount": 0,
    "rank": [
     {
      "label": "확률/통계학 주간",
-     "rank": 13
+     "rank": 20
     }
    ]
   },
@@ -1741,7 +1759,7 @@
   }
  },
  "9788925418612": {
-  "t": "2026-09-15T04:51:05+09:00",
+  "t": "2026-09-15T09:25:20+09:00",
   "book": "9788925418612",
   "kyobo": {
    "rank": [],
@@ -1848,7 +1866,7 @@
   }
  },
  "9791165217891": {
-  "t": "2026-09-15T04:51:05+09:00",
+  "t": "2026-09-15T09:25:20+09:00",
   "book": "9791165217891",
   "kyobo": {
    "rank": [],
@@ -1965,7 +1983,7 @@
   }
  },
  "9791160507812": {
-  "t": "2026-09-15T04:51:05+09:00",
+  "t": "2026-09-15T09:25:20+09:00",
   "book": "9791160507812",
   "kyobo": {
    "rank": [
@@ -2162,7 +2180,7 @@
   },
   "aladin": {
    "itemId": "189862640",
-   "salesPoint": 3262,
+   "salesPoint": 3257,
    "reviewCount": 4,
    "commentCount": 5,
    "rank": []
