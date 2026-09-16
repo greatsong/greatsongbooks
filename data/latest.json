@@ -1,10 +1,10 @@
 {
  "ai-literacy-newspaper": {
-  "t": "2026-09-16T09:04:37+09:00",
+  "t": "2026-09-16T15:38:22+09:00",
   "book": "ai-literacy-newspaper",
   "kyobo": {
    "rank": [],
-   "reviewCount": 14,
+   "reviewCount": 15,
    "reviewScore": 10,
    "price": 17010,
    "status": "판매중",
@@ -19,14 +19,14 @@
     "coupon": false
    },
    "reviewStats": {
-    "total": 14,
+    "total": 15,
     "buyer": 0,
     "avg": 10,
     "dist": {
      "1": 0,
      "2": 0,
      "3": 0,
-     "4": 14
+     "4": 15
     }
    },
    "boughtTogether": [
@@ -152,7 +152,7 @@
   },
   "yes24": {
    "salesIndex": 4716,
-   "reviewCount": 26,
+   "reviewCount": 27,
    "reviewScore": 10.0,
    "onelineCount": 0,
    "ratingDist": [
@@ -185,15 +185,26 @@
    ],
    "rankText": "베스트 어린이 68위 | 어린이 top100 1주"
   },
-  "aladinError": "HTTPError: HTTP Error 403: Forbidden",
+  "aladin": {
+   "itemId": "401134097",
+   "salesPoint": 660,
+   "reviewCount": 11,
+   "commentCount": 0,
+   "rank": [
+    {
+     "label": "책읽기/글쓰기 주간",
+     "rank": 18
+    }
+   ]
+  },
   "reviews": {
-   "kyobo": 14,
-   "yes24": 26,
-   "aladin": 9
+   "kyobo": 15,
+   "yes24": 27,
+   "aladin": 11
   }
  },
  "9791173576294": {
-  "t": "2026-09-16T09:04:37+09:00",
+  "t": "2026-09-16T15:38:22+09:00",
   "book": "9791173576294",
   "kyobo": {
    "rank": [],
@@ -378,7 +389,13 @@
    "rank": [],
    "rankText": "베스트 3-4학년 top100 1주"
   },
-  "aladinError": "HTTPError: HTTP Error 403: Forbidden",
+  "aladin": {
+   "itemId": "399320263",
+   "salesPoint": 740,
+   "reviewCount": 27,
+   "commentCount": 1,
+   "rank": []
+  },
   "reviews": {
    "kyobo": 26,
    "yes24": 53,
@@ -386,7 +403,7 @@
   }
  },
  "9791173576287": {
-  "t": "2026-09-16T09:04:37+09:00",
+  "t": "2026-09-16T15:38:22+09:00",
   "book": "9791173576287",
   "kyobo": {
    "rank": [],
@@ -571,7 +588,13 @@
    "rank": [],
    "rankText": ""
   },
-  "aladinError": "HTTPError: HTTP Error 403: Forbidden",
+  "aladin": {
+   "itemId": "391279953",
+   "salesPoint": 929,
+   "reviewCount": 22,
+   "commentCount": 1,
+   "rank": []
+  },
   "reviews": {
    "kyobo": 17,
    "yes24": 51,
@@ -579,7 +602,7 @@
   }
  },
  "9791173576270": {
-  "t": "2026-09-16T09:04:37+09:00",
+  "t": "2026-09-16T15:38:22+09:00",
   "book": "9791173576270",
   "kyobo": {
    "rank": [],
@@ -770,7 +793,13 @@
    "rank": [],
    "rankText": ""
   },
-  "aladinError": "HTTPError: HTTP Error 403: Forbidden",
+  "aladin": {
+   "itemId": "379190660",
+   "salesPoint": 1332,
+   "reviewCount": 17,
+   "commentCount": 0,
+   "rank": []
+  },
   "reviews": {
    "kyobo": 14,
    "yes24": 25,
@@ -778,7 +807,7 @@
   }
  },
  "9791140715411": {
-  "t": "2026-09-16T09:04:37+09:00",
+  "t": "2026-09-16T15:38:22+09:00",
   "book": "9791140715411",
   "kyobo": {
    "rank": [
@@ -947,7 +976,13 @@
    "rank": [],
    "rankText": "베스트 IT 모바일 top100 5주"
   },
-  "aladinError": "HTTPError: HTTP Error 403: Forbidden",
+  "aladin": {
+   "itemId": "371134314",
+   "salesPoint": 1051,
+   "reviewCount": 0,
+   "commentCount": 1,
+   "rank": []
+  },
   "reviews": {
    "kyobo": 2,
    "yes24": 1,
@@ -955,7 +990,7 @@
   }
  },
  "9791194383222": {
-  "t": "2026-09-16T09:04:37+09:00",
+  "t": "2026-09-16T15:38:22+09:00",
   "book": "9791194383222",
   "kyobo": {
    "rank": [],
@@ -963,7 +998,7 @@
    "reviewScore": 10,
    "price": 25200,
    "status": "판매중",
-   "online": 15,
+   "online": 14,
    "likeCount": 47,
    "flags": {
     "mdChoice": false,
@@ -1140,7 +1175,13 @@
    "rank": [],
    "rankText": "베스트 IT 모바일 top100 10주"
   },
-  "aladinError": "HTTPError: HTTP Error 403: Forbidden",
+  "aladin": {
+   "itemId": "360262381",
+   "salesPoint": 1047,
+   "reviewCount": 6,
+   "commentCount": 2,
+   "rank": []
+  },
   "reviews": {
    "kyobo": 5,
    "yes24": 6,
@@ -1148,7 +1189,7 @@
   }
  },
  "9791163467830": {
-  "t": "2026-09-16T09:04:37+09:00",
+  "t": "2026-09-16T15:38:22+09:00",
   "book": "9791163467830",
   "kyobo": {
    "rank": [],
@@ -1312,7 +1353,13 @@
    "rank": [],
    "rankText": "베스트 사회 정치 top20 1주"
   },
-  "aladinError": "HTTPError: HTTP Error 403: Forbidden",
+  "aladin": {
+   "itemId": "360198605",
+   "salesPoint": 572,
+   "reviewCount": 0,
+   "commentCount": 3,
+   "rank": []
+  },
   "reviews": {
    "kyobo": 6,
    "yes24": 3,
@@ -1320,7 +1367,7 @@
   }
  },
  "9788925420196": {
-  "t": "2026-09-16T09:04:37+09:00",
+  "t": "2026-09-16T15:38:22+09:00",
   "book": "9788925420196",
   "kyobo": {
    "rank": [],
@@ -1484,7 +1531,13 @@
    "rank": [],
    "rankText": "베스트 사범대 계열 top100 1주"
   },
-  "aladinError": "HTTPError: HTTP Error 403: Forbidden",
+  "aladin": {
+   "itemId": "359876201",
+   "salesPoint": 429,
+   "reviewCount": 0,
+   "commentCount": 0,
+   "rank": []
+  },
   "reviews": {
    "kyobo": 1,
    "yes24": 1,
@@ -1492,7 +1545,7 @@
   }
  },
  "9791140708277": {
-  "t": "2026-09-16T09:04:37+09:00",
+  "t": "2026-09-16T15:38:22+09:00",
   "book": "9791140708277",
   "kyobo": {
    "rank": [
@@ -1505,7 +1558,7 @@
    "reviewScore": 9.5,
    "price": 18000,
    "status": "판매중",
-   "online": 5,
+   "online": 15,
    "likeCount": 36,
    "flags": {
     "mdChoice": false,
@@ -1687,7 +1740,18 @@
    ],
    "rankText": "베스트 OS/데이터베이스 23위 | IT 모바일 top20 1주"
   },
-  "aladinError": "HTTPError: HTTP Error 403: Forbidden",
+  "aladin": {
+   "itemId": "334131360",
+   "salesPoint": 859,
+   "reviewCount": 12,
+   "commentCount": 0,
+   "rank": [
+    {
+     "label": "확률/통계학 주간",
+     "rank": 15
+    }
+   ]
+  },
   "reviews": {
    "kyobo": 13,
    "yes24": 23,
@@ -1695,7 +1759,7 @@
   }
  },
  "9788925418612": {
-  "t": "2026-09-16T09:04:37+09:00",
+  "t": "2026-09-16T15:38:22+09:00",
   "book": "9788925418612",
   "kyobo": {
    "rank": [],
@@ -1788,7 +1852,13 @@
    "rank": [],
    "rankText": "베스트 사범대 계열 top100 1주"
   },
-  "aladinError": "HTTPError: HTTP Error 403: Forbidden",
+  "aladin": {
+   "itemId": "335801870",
+   "salesPoint": 31,
+   "reviewCount": 0,
+   "commentCount": 0,
+   "rank": []
+  },
   "reviews": {
    "kyobo": 1,
    "yes24": 1,
@@ -1796,7 +1866,7 @@
   }
  },
  "9791165217891": {
-  "t": "2026-09-16T09:04:37+09:00",
+  "t": "2026-09-16T15:38:22+09:00",
   "book": "9791165217891",
   "kyobo": {
    "rank": [],
@@ -1899,7 +1969,13 @@
    "rank": [],
    "rankText": "베스트 컴퓨터 입문/활용 top20 2주"
   },
-  "aladinError": "HTTPError: HTTP Error 403: Forbidden",
+  "aladin": {
+   "itemId": "284640766",
+   "salesPoint": 149,
+   "reviewCount": 5,
+   "commentCount": 1,
+   "rank": []
+  },
   "reviews": {
    "kyobo": 4,
    "yes24": 8,
@@ -1907,7 +1983,7 @@
   }
  },
  "9791160507812": {
-  "t": "2026-09-16T09:04:37+09:00",
+  "t": "2026-09-16T15:38:22+09:00",
   "book": "9791160507812",
   "kyobo": {
    "rank": [
@@ -2102,7 +2178,13 @@
    ],
    "rankText": "베스트 OS/데이터베이스 11위 | IT 모바일 top20 15주"
   },
-  "aladinError": "HTTPError: HTTP Error 403: Forbidden",
+  "aladin": {
+   "itemId": "189862640",
+   "salesPoint": 3257,
+   "reviewCount": 4,
+   "commentCount": 5,
+   "rank": []
+  },
   "reviews": {
    "kyobo": 16,
    "yes24": 34,
