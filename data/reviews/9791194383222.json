@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-01T10:10:13+09:00",
+ "updated": "2026-10-02T10:29:04+09:00",
  "kyobo": [
   {
    "id": "k15545583",
@@ -216,8 +216,5 @@
    "likes": 0,
    "purchased": false
   }
- ],
- "errors": [
-  "aladin: TimeoutError: The read operation timed out"
  ]
 }
