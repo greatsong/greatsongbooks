@@ -1,12 +1,12 @@
 {
  "ai-literacy-newspaper": {
-  "t": "2026-10-09T10:54:07+09:00",
+  "t": "2026-10-10T10:35:54+09:00",
   "book": "ai-literacy-newspaper",
   "kyobo": {
    "rank": [
     {
      "label": "어린이(초등)",
-     "rank": 735
+     "rank": 784
     }
    ],
    "reviewCount": 26,
@@ -109,7 +109,7 @@
    "keywords": [],
    "events": [],
    "stores": {
-    "001": 1,
+    "001": 0,
     "058": 1,
     "015": 1,
     "023": 1,
@@ -147,10 +147,10 @@
     "048": 0,
     "043": 0
    },
-   "storeTotal": 39
+   "storeTotal": 38
   },
   "yes24": {
-   "salesIndex": 6201,
+   "salesIndex": 5889,
    "reviewScore": 10.0,
    "onelineCount": 0,
    "ratingDist": [
@@ -178,14 +178,14 @@
    "rank": [
     {
      "label": "어린이",
-     "rank": 90
+     "rank": 89
     }
    ],
-   "rankText": "베스트 어린이 90위 | 어린이 top100 2주"
+   "rankText": "베스트 어린이 89위 | 어린이 top100 2주"
   },
   "aladin": {
    "itemId": "401134097",
-   "salesPoint": 855,
+   "salesPoint": 800,
    "reviewCount": 33,
    "commentCount": 0,
    "rank": [
@@ -202,7 +202,7 @@
   }
  },
  "9791173576294": {
-  "t": "2026-10-09T10:54:07+09:00",
+  "t": "2026-10-10T10:35:54+09:00",
   "book": "9791173576294",
   "kyobo": {
    "rank": [],
@@ -210,7 +210,7 @@
    "reviewScore": 10,
    "price": 15210,
    "status": "판매중",
-   "online": 22,
+   "online": 19,
    "likeCount": 13,
    "flags": {
     "mdChoice": true,
@@ -358,7 +358,7 @@
    "storeTotal": 54
   },
   "yes24": {
-   "salesIndex": 1698,
+   "salesIndex": 1668,
    "reviewScore": 10.0,
    "onelineCount": 0,
    "ratingDist": [
@@ -420,7 +420,7 @@
   }
  },
  "9791173576287": {
-  "t": "2026-10-09T10:54:07+09:00",
+  "t": "2026-10-10T10:35:54+09:00",
   "book": "9791173576287",
   "kyobo": {
    "rank": [],
@@ -576,7 +576,7 @@
    "storeTotal": 34
   },
   "yes24": {
-   "salesIndex": 2352,
+   "salesIndex": 2292,
    "reviewScore": 10.0,
    "onelineCount": 2,
    "ratingDist": [
@@ -618,7 +618,7 @@
   }
  },
  "9791173576270": {
-  "t": "2026-10-09T10:54:07+09:00",
+  "t": "2026-10-10T10:35:54+09:00",
   "book": "9791173576270",
   "kyobo": {
    "rank": [],
@@ -780,7 +780,7 @@
    "storeTotal": 31
   },
   "yes24": {
-   "salesIndex": 4746,
+   "salesIndex": 4716,
    "reviewScore": 10.0,
    "onelineCount": 0,
    "ratingDist": [
@@ -822,7 +822,7 @@
   }
  },
  "9791140715411": {
-  "t": "2026-10-09T10:54:07+09:00",
+  "t": "2026-10-10T10:35:54+09:00",
   "book": "9791140715411",
   "kyobo": {
    "rank": [],
@@ -830,7 +830,7 @@
    "reviewScore": 10,
    "price": 22500,
    "status": "판매중",
-   "online": 4,
+   "online": 5,
    "likeCount": 21,
    "flags": {
     "mdChoice": false,
@@ -978,7 +978,7 @@
    "storeTotal": 18
   },
   "yes24": {
-   "salesIndex": 3189,
+   "salesIndex": 3159,
    "reviewScore": 10.0,
    "onelineCount": 1,
    "ratingDist": null,
@@ -999,7 +999,7 @@
   }
  },
  "9791194383222": {
-  "t": "2026-10-09T10:54:07+09:00",
+  "t": "2026-10-10T10:35:54+09:00",
   "book": "9791194383222",
   "kyobo": {
    "rank": [],
@@ -1007,7 +1007,7 @@
    "reviewScore": 10,
    "price": 25200,
    "status": "판매중",
-   "online": 6,
+   "online": 11,
    "likeCount": 47,
    "flags": {
     "mdChoice": false,
@@ -1185,7 +1185,7 @@
   },
   "aladin": {
    "itemId": "360262381",
-   "salesPoint": 888,
+   "salesPoint": 885,
    "reviewCount": 6,
    "commentCount": 2,
    "rank": []
@@ -1197,7 +1197,7 @@
   }
  },
  "9791163467830": {
-  "t": "2026-10-09T10:54:07+09:00",
+  "t": "2026-10-10T10:35:54+09:00",
   "book": "9791163467830",
   "kyobo": {
    "rank": [],
@@ -1205,7 +1205,7 @@
    "reviewScore": 10,
    "price": 19800,
    "status": "판매중",
-   "online": 2,
+   "online": 8,
    "likeCount": 24,
    "flags": {
     "mdChoice": false,
@@ -1362,7 +1362,7 @@
   },
   "aladin": {
    "itemId": "360198605",
-   "salesPoint": 640,
+   "salesPoint": 600,
    "reviewCount": 0,
    "commentCount": 3,
    "rank": []
@@ -1374,7 +1374,7 @@
   }
  },
  "9788925420196": {
-  "t": "2026-10-09T10:54:07+09:00",
+  "t": "2026-10-10T10:35:54+09:00",
   "book": "9788925420196",
   "kyobo": {
    "rank": [],
@@ -1551,7 +1551,7 @@
   }
  },
  "9791140708277": {
-  "t": "2026-10-09T10:54:07+09:00",
+  "t": "2026-10-10T10:35:54+09:00",
   "book": "9791140708277",
   "kyobo": {
    "rank": [],
@@ -1559,7 +1559,7 @@
    "reviewScore": 9.5,
    "price": 18000,
    "status": "판매중",
-   "online": 4,
+   "online": 14,
    "likeCount": 36,
    "flags": {
     "mdChoice": false,
@@ -1735,10 +1735,10 @@
    "rank": [
     {
      "label": "OS/데이터베이스",
-     "rank": 51
+     "rank": 48
     }
    ],
-   "rankText": "베스트 OS/데이터베이스 51위 | IT 모바일 top20 1주"
+   "rankText": "베스트 OS/데이터베이스 48위 | IT 모바일 top20 1주"
   },
   "aladin": {
    "itemId": "334131360",
@@ -1754,7 +1754,7 @@
   }
  },
  "9788925418612": {
-  "t": "2026-10-09T10:54:07+09:00",
+  "t": "2026-10-10T10:35:54+09:00",
   "book": "9788925418612",
   "kyobo": {
    "rank": [],
@@ -1860,7 +1860,7 @@
   }
  },
  "9791165217891": {
-  "t": "2026-10-09T10:54:07+09:00",
+  "t": "2026-10-10T10:35:54+09:00",
   "book": "9791165217891",
   "kyobo": {
    "rank": [],
@@ -1976,7 +1976,7 @@
   }
  },
  "9791160507812": {
-  "t": "2026-10-09T10:54:07+09:00",
+  "t": "2026-10-10T10:35:54+09:00",
   "book": "9791160507812",
   "kyobo": {
    "rank": [],
@@ -1984,7 +1984,7 @@
    "reviewScore": 9.8,
    "price": 16200,
    "status": "판매중",
-   "online": 47,
+   "online": 46,
    "likeCount": 125,
    "flags": {
     "mdChoice": true,
@@ -2162,13 +2162,13 @@
   },
   "aladin": {
    "itemId": "189862640",
-   "salesPoint": 3497,
+   "salesPoint": 3397,
    "reviewCount": 4,
    "commentCount": 5,
    "rank": [
     {
      "label": "프로그래밍 언어 주간",
-     "rank": 15
+     "rank": 23
     }
    ]
   },
