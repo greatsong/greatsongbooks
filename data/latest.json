@@ -1,20 +1,20 @@
 {
  "ai-literacy-newspaper": {
-  "t": "2026-10-11T09:45:30+09:00",
+  "t": "2026-10-12T10:06:42+09:00",
   "book": "ai-literacy-newspaper",
   "kyobo": {
    "rank": [
     {
      "label": "어린이(초등)",
-     "rank": 801
+     "rank": 809
     }
    ],
-   "reviewCount": 26,
+   "reviewCount": 27,
    "reviewScore": 10,
    "price": 17010,
    "status": "판매중",
    "online": 0,
-   "likeCount": 4,
+   "likeCount": 5,
    "flags": {
     "mdChoice": true,
     "soldout": false,
@@ -24,14 +24,14 @@
     "coupon": false
    },
    "reviewStats": {
-    "total": 26,
-    "buyer": 1,
+    "total": 27,
+    "buyer": 2,
     "avg": 10,
     "dist": {
      "1": 0,
      "2": 0,
      "3": 0,
-     "4": 26
+     "4": 27
     }
    },
    "boughtTogether": [
@@ -117,7 +117,7 @@
     "033": 1,
     "072": 0,
     "068": 0,
-    "036": 3,
+    "036": 1,
     "003": 1,
     "046": 1,
     "074": 0,
@@ -147,10 +147,10 @@
     "048": 0,
     "043": 0
    },
-   "storeTotal": 37
+   "storeTotal": 35
   },
   "yes24": {
-   "salesIndex": 5673,
+   "salesIndex": 5565,
    "reviewScore": 10.0,
    "onelineCount": 0,
    "ratingDist": [
@@ -178,20 +178,20 @@
    "rank": [
     {
      "label": "어린이",
-     "rank": 88
+     "rank": 91
     }
    ],
-   "rankText": "베스트 어린이 88위 | 어린이 top100 2주"
+   "rankText": "베스트 어린이 91위 | 어린이 top100 3주"
   },
   "aladin": {
    "itemId": "401134097",
-   "salesPoint": 775,
+   "salesPoint": 740,
    "reviewCount": 33,
    "commentCount": 0,
    "rank": [
     {
      "label": "책읽기/글쓰기 주간",
-     "rank": 19
+     "rank": 21
     }
    ]
   },
@@ -202,7 +202,7 @@
   }
  },
  "9791173576294": {
-  "t": "2026-10-11T09:45:30+09:00",
+  "t": "2026-10-12T10:06:42+09:00",
   "book": "9791173576294",
   "kyobo": {
    "rank": [],
@@ -408,7 +408,7 @@
   },
   "aladin": {
    "itemId": "399320263",
-   "salesPoint": 725,
+   "salesPoint": 680,
    "reviewCount": 27,
    "commentCount": 1,
    "rank": []
@@ -420,7 +420,7 @@
   }
  },
  "9791173576287": {
-  "t": "2026-10-11T09:45:30+09:00",
+  "t": "2026-10-12T10:06:42+09:00",
   "book": "9791173576287",
   "kyobo": {
    "rank": [],
@@ -428,7 +428,7 @@
    "reviewScore": 9.9,
    "price": 15210,
    "status": "판매중",
-   "online": 15,
+   "online": 14,
    "likeCount": 32,
    "flags": {
     "mdChoice": true,
@@ -606,7 +606,7 @@
   },
   "aladin": {
    "itemId": "391279953",
-   "salesPoint": 895,
+   "salesPoint": 863,
    "reviewCount": 22,
    "commentCount": 1,
    "rank": []
@@ -618,7 +618,7 @@
   }
  },
  "9791173576270": {
-  "t": "2026-10-11T09:45:30+09:00",
+  "t": "2026-10-12T10:06:42+09:00",
   "book": "9791173576270",
   "kyobo": {
    "rank": [],
@@ -810,7 +810,7 @@
   },
   "aladin": {
    "itemId": "379190660",
-   "salesPoint": 1250,
+   "salesPoint": 1220,
    "reviewCount": 17,
    "commentCount": 0,
    "rank": []
@@ -822,7 +822,7 @@
   }
  },
  "9791140715411": {
-  "t": "2026-10-11T09:45:30+09:00",
+  "t": "2026-10-12T10:06:42+09:00",
   "book": "9791140715411",
   "kyobo": {
    "rank": [],
@@ -830,7 +830,7 @@
    "reviewScore": 10,
    "price": 22500,
    "status": "판매중",
-   "online": 5,
+   "online": 6,
    "likeCount": 21,
    "flags": {
     "mdChoice": false,
@@ -999,7 +999,7 @@
   }
  },
  "9791194383222": {
-  "t": "2026-10-11T09:45:30+09:00",
+  "t": "2026-10-12T10:06:42+09:00",
   "book": "9791194383222",
   "kyobo": {
    "rank": [],
@@ -1155,7 +1155,7 @@
    "storeTotal": 7
   },
   "yes24": {
-   "salesIndex": 2478,
+   "salesIndex": 2343,
    "reviewScore": 10.0,
    "onelineCount": 1,
    "ratingDist": [
@@ -1185,7 +1185,7 @@
   },
   "aladin": {
    "itemId": "360262381",
-   "salesPoint": 877,
+   "salesPoint": 869,
    "reviewCount": 6,
    "commentCount": 2,
    "rank": []
@@ -1197,7 +1197,7 @@
   }
  },
  "9791163467830": {
-  "t": "2026-10-11T09:45:30+09:00",
+  "t": "2026-10-12T10:06:42+09:00",
   "book": "9791163467830",
   "kyobo": {
    "rank": [],
@@ -1362,7 +1362,7 @@
   },
   "aladin": {
    "itemId": "360198605",
-   "salesPoint": 600,
+   "salesPoint": 596,
    "reviewCount": 0,
    "commentCount": 3,
    "rank": []
@@ -1374,7 +1374,7 @@
   }
  },
  "9788925420196": {
-  "t": "2026-10-11T09:45:30+09:00",
+  "t": "2026-10-12T10:06:42+09:00",
   "book": "9788925420196",
   "kyobo": {
    "rank": [],
@@ -1539,7 +1539,7 @@
   },
   "aladin": {
    "itemId": "359876201",
-   "salesPoint": 309,
+   "salesPoint": 405,
    "reviewCount": 0,
    "commentCount": 0,
    "rank": []
@@ -1551,7 +1551,7 @@
   }
  },
  "9791140708277": {
-  "t": "2026-10-11T09:45:30+09:00",
+  "t": "2026-10-12T10:06:42+09:00",
   "book": "9791140708277",
   "kyobo": {
    "rank": [],
@@ -1559,7 +1559,7 @@
    "reviewScore": 9.5,
    "price": 18000,
    "status": "판매중",
-   "online": 14,
+   "online": 13,
    "likeCount": 36,
    "flags": {
     "mdChoice": false,
@@ -1685,7 +1685,7 @@
     "070": 1,
     "047": 0,
     "042": 0,
-    "025": 1,
+    "025": 0,
     "038": 0,
     "069": 0,
     "057": 0,
@@ -1693,7 +1693,7 @@
     "059": 0,
     "087": 0,
     "004": 0,
-    "002": 1,
+    "002": 0,
     "005": 0,
     "024": 0,
     "045": 0,
@@ -1704,10 +1704,10 @@
     "048": 0,
     "043": 0
    },
-   "storeTotal": 7
+   "storeTotal": 5
   },
   "yes24": {
-   "salesIndex": 1809,
+   "salesIndex": 1791,
    "reviewScore": 9.5,
    "onelineCount": 3,
    "ratingDist": [
@@ -1732,17 +1732,12 @@
      "pct": 0
     }
    ],
-   "rank": [
-    {
-     "label": "OS/데이터베이스",
-     "rank": 50
-    }
-   ],
-   "rankText": "베스트 OS/데이터베이스 50위 | IT 모바일 top20 1주"
+   "rank": [],
+   "rankText": "베스트 IT 모바일 top20 1주"
   },
   "aladin": {
    "itemId": "334131360",
-   "salesPoint": 752,
+   "salesPoint": 737,
    "reviewCount": 12,
    "commentCount": 0,
    "rank": []
@@ -1754,7 +1749,7 @@
   }
  },
  "9788925418612": {
-  "t": "2026-10-11T09:45:30+09:00",
+  "t": "2026-10-12T10:06:42+09:00",
   "book": "9788925418612",
   "kyobo": {
    "rank": [],
@@ -1860,7 +1855,7 @@
   }
  },
  "9791165217891": {
-  "t": "2026-10-11T09:45:30+09:00",
+  "t": "2026-10-12T10:06:42+09:00",
   "book": "9791165217891",
   "kyobo": {
    "rank": [],
@@ -1976,7 +1971,7 @@
   }
  },
  "9791160507812": {
-  "t": "2026-10-11T09:45:30+09:00",
+  "t": "2026-10-12T10:06:42+09:00",
   "book": "9791160507812",
   "kyobo": {
    "rank": [],
@@ -2168,7 +2163,7 @@
    "rank": [
     {
      "label": "프로그래밍 언어 주간",
-     "rank": 22
+     "rank": 25
     }
    ]
   },
