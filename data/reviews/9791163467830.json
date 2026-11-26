@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-25T13:49:21+09:00",
+ "updated": "2026-11-26T13:01:47+09:00",
  "kyobo": [
   {
    "id": "k15606659",
@@ -131,8 +131,5 @@
    "likes": 0,
    "purchased": false
   }
- ],
- "errors": [
-  "aladin: HTTPError: HTTP Error 503: Service Unavailable"
  ]
 }
